@@ -60,6 +60,14 @@
                 </div>
             </div>
 
+            <!-- Active Jobs Management & Deletion Section -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-semibold text-slate-700 mb-3">Manage Active Job Postings</h2>
+                <div id="admin-active-jobs-list" class="space-y-3">
+                    <p class="text-sm text-slate-400 italic">Loading active jobs...</p>
+                </div>
+            </div>
+
             <!-- Live Incoming Bookings Tracker -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h2 class="text-lg font-semibold text-slate-700 mb-3">Live Accepted Bookings Tracker</h2>
@@ -73,7 +81,7 @@
         <div id="marketplace-section" class="space-y-4">
             <div class="flex justify-between items-center mb-2">
                 <h2 class="text-xl font-bold text-slate-800">Nearby Services (Live Feed)</h2>
-                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium">Tap Location for Turn-by-Turn Navigation</span>
+                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium">Live Feed Synced</span>
             </div>
             <div id="listings-feed" class="space-y-4">
                 <!-- Dynamic items will load here -->
@@ -96,6 +104,21 @@
                     <a id="modal-maps-link" href="#" target="_blank" class="block w-full text-center bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition text-base shadow-md">🚀 Start GPS Navigation</a>
                     <button onclick="closeLocationModal()" class="block w-full text-center bg-slate-100 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-200 transition text-sm">Close / Done</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Emergency Cancellation Alert Modal for Tablets/Workers -->
+        <div id="cancellation-modal" class="hidden fixed inset-0 bg-red-950 bg-opacity-80 flex items-center justify-center p-4 z-50 animate-pulse">
+            <div class="bg-white p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 border-4 border-red-500">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-xl font-bold text-red-600 flex items-center gap-2"><span>🚨</span> JOB CANCELLED BY ADMIN!</h3>
+                </div>
+                <p class="text-sm text-slate-700 font-medium">An admin has deleted or cancelled the following service job:</p>
+                <div class="bg-red-50 p-4 rounded-xl border border-red-200 space-y-1">
+                    <p id="cancelled-job-title" class="font-bold text-red-900 text-lg">-</p>
+                    <p class="text-xs text-red-600 font-semibold">This task has been removed from active operations.</p>
+                </div>
+                <button onclick="closeCancellationModal()" class="block w-full text-center bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition text-base shadow-md">Acknowledge & Dismiss</button>
             </div>
         </div>
 
@@ -124,22 +147,32 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        let lastCancellationId = null;
+
         db.ref('vitapa_data').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 renderApp(data.jobs || [], data.bookings || []);
+                
+                // Check if a cancellation notification was triggered
+                if (data.lastCancellation && data.lastCancellation.id !== lastCancellationId) {
+                    lastCancellationId = data.lastCancellation.id;
+                    triggerCancellationAlert(data.lastCancellation.title);
+                }
             } else {
                 const initialData = {
                     jobs: [
                         { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: '13.0827, 80.2707 (GPS Pin)', status: 'Available' }
                     ],
-                    bookings: []
+                    bookings: [],
+                    lastCancellation: null
                 };
                 db.ref('vitapa_data').set(initialData);
             }
         });
 
         function renderApp(activeJobs, acceptedBookings) {
+            // Render marketplace feed
             const feed = document.getElementById('listings-feed');
             if (feed) {
                 feed.innerHTML = '';
@@ -147,7 +180,6 @@
                     feed.innerHTML = '<p class="text-slate-500 text-sm">No active listings available.</p>';
                 } else {
                     activeJobs.forEach(job => {
-                        // Use Google Maps directions endpoint so it opens straight into navigation mode
                         const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location)}`;
                         const item = document.createElement('div');
                         item.className = 'bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center';
@@ -172,6 +204,29 @@
                 }
             }
 
+            // Render admin active jobs manager list
+            const adminJobsList = document.getElementById('admin-active-jobs-list');
+            if (adminJobsList) {
+                if (activeJobs.length === 0) {
+                    adminJobsList.innerHTML = '<p class="text-sm text-slate-400 italic">No active jobs currently posted.</p>';
+                } else {
+                    adminJobsList.innerHTML = '';
+                    activeJobs.forEach(job => {
+                        const jItem = document.createElement('div');
+                        jItem.className = 'p-3 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center text-sm';
+                        jItem.innerHTML = `
+                            <div>
+                                <strong>${job.title}</strong> (${job.price})<br>
+                                <span class="text-xs text-slate-500">📍 ${job.location} | Status: <span class="font-semibold text-indigo-600">${job.status}</span></span>
+                            </div>
+                            <button onclick="deleteJob(${job.id})" class="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700 transition shadow-sm">🗑️ Delete Job</button>
+                        `;
+                        adminJobsList.appendChild(jItem);
+                    });
+                }
+            }
+
+            // Render bookings tracker
             const adminList = document.getElementById('admin-bookings-list');
             if (adminList) {
                 if (acceptedBookings.length === 0) {
@@ -189,6 +244,44 @@
                     });
                 }
             }
+        }
+
+        // Function for admin to delete a job and trigger instant alert
+        function deleteJob(jobId) {
+            if (!confirm("Are you sure you want to delete this job? This will instantly alert all workers.")) return;
+
+            db.ref('vitapa_data').once('value').then((snapshot) => {
+                const data = snapshot.val() || { jobs: [], bookings: [] };
+                const jobIndex = data.jobs.findIndex(j => j.id === jobId);
+                
+                if (jobIndex !== -1) {
+                    const deletedJob = data.jobs[jobIndex];
+                    data.jobs.splice(jobIndex, 1);
+
+                    // Set cancellation broadcast
+                    data.lastCancellation = {
+                        id: Date.now(),
+                        title: `${deletedJob.title} (${deletedJob.price})`
+                    };
+
+                    db.ref('vitapa_data').set(data).then(() => {
+                        alert("Job deleted and cancellation broadcast sent to all screens!");
+                    });
+                }
+            });
+        }
+
+        function triggerCancellationAlert(jobTitle) {
+            const sound = document.getElementById('alert-sound');
+            if(sound) {
+                sound.play().catch(e => console.log(e));
+            }
+            document.getElementById('cancelled-job-title').innerText = jobTitle;
+            document.getElementById('cancellation-modal').classList.remove('hidden');
+        }
+
+        function closeCancellationModal() {
+            document.getElementById('cancellation-modal').classList.add('hidden');
         }
 
         function captureAdminGPS() {
@@ -244,7 +337,6 @@
                         if(sound) sound.play().catch(e => console.log(e));
 
                         document.getElementById('modal-job-location').innerText = job.location;
-                        // Set directions URL for the confirmation modal button as well
                         document.getElementById('modal-maps-link').href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location)}`;
                         document.getElementById('location-modal').classList.remove('hidden');
                     });
