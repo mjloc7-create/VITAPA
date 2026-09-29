@@ -46,7 +46,7 @@
                 <div class="space-y-4">
                     <input type="text" id="job-title" placeholder="Service Name (e.g., Dance Fitness)" class="w-full px-4 py-2 border rounded-lg">
                     <input type="text" id="job-price" placeholder="Price in INR (e.g., ₹500)" class="w-full px-4 py-2 border rounded-lg">
-                    <input type="text" id="job-location" placeholder="GPS Location / Area (e.g., 560096 / Aitur Layout)" class="w-full px-4 py-2 border rounded-lg">
+                    <input type="text" id="job-location" placeholder="GPS Location / Exact Address (e.g., Aitur Layout, St 4)" class="w-full px-4 py-2 border rounded-lg">
                     <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 transition">Broadcast Job (1.0 km Radius)</button>
                 </div>
             </div>
@@ -68,6 +68,25 @@
             </div>
             <div id="listings-feed" class="space-y-4">
                 <!-- Dynamic items will load here -->
+            </div>
+        </div>
+
+        <!-- Precise Location Popup Modal -->
+        <div id="location-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-2xl max-w-md w-full shadow-xl space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-emerald-600">Booking Confirmed! 🎯</h3>
+                    <button onclick="closeLocationModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+                </div>
+                <p class="text-sm text-slate-600">You have successfully accepted this job. Here is the precise location to head to work:</p>
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <p class="text-xs font-semibold text-indigo-600 uppercase">Exact Work Address / GPS Area</p>
+                    <p id="modal-job-location" class="font-bold text-slate-900 text-base">-</p>
+                </div>
+                <div class="flex gap-2">
+                    <a id="modal-maps-link" href="#" target="_blank" class="flex-1 text-center bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition text-sm">Open Google Maps</a>
+                    <button onclick="closeLocationModal()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium hover:bg-slate-300 transition text-sm">Close</button>
+                </div>
             </div>
         </div>
 
@@ -96,7 +115,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Listen for real-time updates from Firebase database
         db.ref('vitapa_data').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -104,8 +122,8 @@
             } else {
                 const initialData = {
                     jobs: [
-                        { id: 1, title: 'DANCE FITNESS', price: '₹500', location: '560096', status: 'Available' },
-                        { id: 2, title: 'COSTUME FITTING & RENTAL', price: '₹500', location: 'AITUR LAYOUT - 12m away', status: 'Available' }
+                        { id: 1, title: 'DANCE FITNESS', price: '₹500', location: 'Aitur Layout, Near Main Park (560096)', status: 'Available' },
+                        { id: 2, title: 'COSTUME FITTING & RENTAL', price: '₹500', location: 'Aitur Layout - Block B', status: 'Available' }
                     ],
                     bookings: []
                 };
@@ -127,7 +145,7 @@
                             <div>
                                 <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
                                 <h3 class="font-bold text-slate-800">${job.title}</h3>
-                                <p class="text-xs text-slate-500">${job.location || '560096'}</p>
+                                <p class="text-xs text-slate-500 font-medium mt-0.5">📍 ${job.location || '560096'}</p>
                             </div>
                             <div class="text-right">
                                 <span class="block font-bold text-slate-900 mb-2">${job.price}</span>
@@ -152,7 +170,7 @@
                         const bItem = document.createElement('div');
                         bItem.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center text-sm';
                         bItem.innerHTML = `
-                            <div><strong>${b.title}</strong> (${b.price}) booked by <strong>${b.client}</strong></div>
+                            <div><strong>${b.title}</strong> (${b.price}) booked by <strong>${b.client}</strong><br><span class="text-xs text-slate-500">📍 ${b.location}</span></div>
                             <span class="text-xs text-emerald-700 font-semibold">${b.time}</span>
                         `;
                         adminList.appendChild(bItem);
@@ -166,7 +184,7 @@
                 const data = snapshot.val() || { jobs: [], bookings: [] };
                 const job = data.jobs.find(j => j.id === id);
                 if (job) {
-                    const clientName = prompt("Enter your name to confirm booking:", "Client");
+                    const clientName = prompt("Enter your name to confirm booking:", "Worker");
                     if (!clientName) return;
 
                     job.status = 'Booked';
@@ -176,6 +194,7 @@
                         title: job.title,
                         price: job.price,
                         client: clientName,
+                        location: job.location,
                         time: new Date().toLocaleTimeString()
                     };
 
@@ -185,10 +204,18 @@
                     db.ref('vitapa_data').set(data).then(() => {
                         const sound = document.getElementById('alert-sound');
                         if(sound) sound.play().catch(e => console.log(e));
-                        alert("Booking accepted! Synced instantly to Admin Dashboard.");
+
+                        // Show Precise Location Modal with Google Maps Link
+                        document.getElementById('modal-job-location').innerText = job.location;
+                        document.getElementById('modal-maps-link').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
+                        document.getElementById('location-modal').classList.remove('hidden');
                     });
                 }
             });
+        }
+
+        function closeLocationModal() {
+            document.getElementById('location-modal').classList.add('hidden');
         }
 
         function handleAdminLogin() {
@@ -218,7 +245,7 @@
             
             if(title && price) {
                 const formattedPrice = price.startsWith('₹') ? price : '₹' + price;
-                const finalLocation = location ? location : '560096';
+                const finalLocation = location ? location : 'Aitur Layout, 560096';
                 
                 const newJob = {
                     id: Date.now(),
@@ -237,7 +264,7 @@
                         document.getElementById('job-title').value = '';
                         document.getElementById('job-price').value = '';
                         document.getElementById('job-location').value = '';
-                        alert('Job broadcasted live to all devices!');
+                        alert('Job broadcasted with precise location!');
                     });
                 });
             } else {
