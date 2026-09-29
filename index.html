@@ -15,7 +15,7 @@
     <!-- Header -->
     <header class="bg-indigo-600 text-white shadow-md">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Cloud Live</span></h1>
+            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Hyper-Local</span></h1>
             <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace View</div>
         </div>
     </header>
@@ -41,7 +41,7 @@
                     <button onclick="handleAdminLogout()" class="text-sm bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100 transition">Log Out</button>
                 </div>
                 <div class="space-y-4">
-                    <input type="text" id="job-title" placeholder="Service Name (e.g., Costume Fitting & Rental)" class="w-full px-4 py-2 border rounded-lg">
+                    <input type="text" id="job-title" placeholder="Service Name (e.g., Dance Fitting & Rental)" class="w-full px-4 py-2 border rounded-lg">
                     <input type="text" id="job-price" placeholder="Price in INR (e.g., ₹500)" class="w-full px-4 py-2 border rounded-lg">
                     <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 transition">Broadcast Job (1.0 km Radius)</button>
                 </div>
@@ -71,35 +71,45 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        VITAPA Hyper-Local Platform &bull; Cloud Synced
+        VITAPA Hyper-Local Platform &bull; Synchronized Live
     </footer>
 
     <!-- Audio Alert Element -->
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
-        // Use robust cloud-synced storage with local backup fallback
-        let activeJobs = JSON.parse(localStorage.getItem('vitapa_jobs') || '[]');
-        let acceptedBookings = JSON.parse(localStorage.getItem('vitapa_bookings') || '[]');
-
-        // Seed initial demo item if empty
-        if (activeJobs.length === 0) {
-            activeJobs = [
-                { id: 1, title: 'COSTUME FITTING & RENTAL', price: '₹500', location: 'AITUR LAYOUT - 12m away', status: 'Available' }
-            ];
-            localStorage.setItem('vitapa_jobs', JSON.stringify(activeJobs));
+        // Use synchronized localStorage with broadcast support for seamless tab/device updates
+        function getJobs() {
+            const data = localStorage.getItem('vitapa_jobs_v2');
+            if (!data) {
+                const initial = [
+                    { id: 1, title: 'COSTUME FITTING & RENTAL', price: '₹500', location: 'AITUR LAYOUT - 12m away', status: 'Available' }
+                ];
+                localStorage.setItem('vitapa_jobs_v2', JSON.stringify(initial));
+                return initial;
+            }
+            return JSON.parse(data);
         }
 
-        function fetchAppData() {
-            // Sync from localStorage (ensures cross-tab & instant updates)
-            const storedJobs = localStorage.getItem('vitapa_jobs');
-            const storedBookings = localStorage.getItem('vitapa_bookings');
-            if (storedJobs) activeJobs = JSON.parse(storedJobs);
-            if (storedBookings) acceptedBookings = JSON.parse(storedBookings);
-            renderApp();
+        function saveJobs(jobs) {
+            localStorage.setItem('vitapa_jobs_v2', JSON.stringify(jobs));
+            window.dispatchEvent(new Event('storage_update'));
+        }
+
+        function getBookings() {
+            const data = localStorage.getItem('vitapa_bookings_v2');
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveBookings(bookings) {
+            localStorage.setItem('vitapa_bookings_v2', JSON.stringify(bookings));
+            window.dispatchEvent(new Event('storage_update'));
         }
 
         function renderApp() {
+            const activeJobs = getJobs();
+            const acceptedBookings = getBookings();
+
             const feed = document.getElementById('listings-feed');
             if (feed) {
                 feed.innerHTML = '';
@@ -148,13 +158,14 @@
         }
 
         function takeBooking(id) {
+            let activeJobs = getJobs();
             const job = activeJobs.find(j => j.id === id);
             if (job) {
                 const clientName = prompt("Enter your name to confirm booking:", "Client");
                 if (!clientName) return;
 
                 job.status = 'Booked';
-                localStorage.setItem('vitapa_jobs', JSON.stringify(activeJobs));
+                saveJobs(activeJobs);
 
                 const newBooking = {
                     id: Date.now(),
@@ -164,15 +175,15 @@
                     time: new Date().toLocaleTimeString()
                 };
 
+                let acceptedBookings = getBookings();
                 acceptedBookings.unshift(newBooking);
-                localStorage.setItem('vitapa_bookings', JSON.stringify(acceptedBookings));
+                saveBookings(acceptedBookings);
 
-                // Play alert sound
                 const sound = document.getElementById('alert-sound');
                 if(sound) sound.play().catch(e => console.log(e));
 
                 alert("Booking accepted successfully! Admin dashboard notified.");
-                fetchAppData();
+                renderApp();
             }
         }
 
@@ -211,24 +222,22 @@
                     status: 'Available'
                 };
                 
+                let activeJobs = getJobs();
                 activeJobs.unshift(newJob);
-                localStorage.setItem('vitapa_jobs', JSON.stringify(activeJobs));
+                saveJobs(activeJobs);
 
                 document.getElementById('job-title').value = '';
                 document.getElementById('job-price').value = '';
                 alert('Job broadcasted successfully!');
-                fetchAppData();
+                renderApp();
             } else {
                 alert('Please fill in both title and price.');
             }
         }
 
-        // Listen for storage changes across tabs/devices automatically
-        window.addEventListener('storage', (e) => {
-            fetchAppData();
-        });
-
-        setInterval(fetchAppData, 2000);
+        window.addEventListener('storage', () => renderApp());
+        window.addEventListener('storage_update', () => renderApp());
+        setInterval(renderApp, 1500);
 
         setTimeout(() => {
             const gps = document.getElementById('gps-status');
@@ -238,7 +247,7 @@
             }
         }, 1000);
 
-        fetchAppData();
+        renderApp();
     </script>
 </body>
 </html>
