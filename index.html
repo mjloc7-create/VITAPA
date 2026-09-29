@@ -46,8 +46,17 @@
                 <div class="space-y-4">
                     <input type="text" id="job-title" placeholder="Service Name (e.g., Dance Fitness)" class="w-full px-4 py-2 border rounded-lg">
                     <input type="text" id="job-price" placeholder="Price in INR (e.g., ₹500)" class="w-full px-4 py-2 border rounded-lg">
-                    <input type="text" id="job-location" placeholder="Exact Work Address / GPS Area" class="w-full px-4 py-2 border rounded-lg">
-                    <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 transition">Broadcast Job Live</button>
+                    
+                    <!-- GPS Pin Marking Section -->
+                    <div class="space-y-2">
+                        <div class="flex gap-2">
+                            <input type="text" id="job-location" placeholder="Click button to drop exact GPS pin or type address" class="flex-1 px-4 py-2 border rounded-lg text-sm bg-slate-50">
+                            <button onclick="captureAdminGPS()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition whitespace-nowrap">📍 Drop GPS Pin</button>
+                        </div>
+                        <p id="gps-pin-status" class="text-xs text-slate-500 italic">Click 'Drop GPS Pin' to use your device's exact location coordinates for this job.</p>
+                    </div>
+
+                    <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition">Broadcast Job Live with GPS Pin</button>
                 </div>
             </div>
 
@@ -64,7 +73,7 @@
         <div id="marketplace-section" class="space-y-4">
             <div class="flex justify-between items-center mb-2">
                 <h2 class="text-xl font-bold text-slate-800">Nearby Services (Live Feed)</h2>
-                <button onclick="resetFreshJob()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded border border-indigo-200 hover:bg-indigo-100 font-medium">+ Post Test Job Here</button>
+                <span id="client-gps-status" class="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">Locating via GPS...</span>
             </div>
             <div id="listings-feed" class="space-y-4">
                 <!-- Dynamic items will load here -->
@@ -78,10 +87,10 @@
                     <h3 class="text-lg font-bold text-emerald-600">Booking Confirmed! 🎯</h3>
                     <button onclick="closeLocationModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
                 </div>
-                <p class="text-sm text-slate-600">You have successfully accepted this job. Here is the precise location to head to work:</p>
+                <p class="text-sm text-slate-600">You have successfully accepted this job. Click below to open precise navigation on Google Maps:</p>
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                    <p class="text-xs font-semibold text-indigo-600 uppercase">Exact Work Address / GPS Area</p>
-                    <p id="modal-job-location" class="font-bold text-slate-900 text-base">-</p>
+                    <p class="text-xs font-semibold text-indigo-600 uppercase">Exact Work GPS Pin / Address</p>
+                    <p id="modal-job-location" class="font-bold text-slate-900 text-base break-all">-</p>
                 </div>
                 <div class="flex gap-2">
                     <a id="modal-maps-link" href="#" target="_blank" class="flex-1 text-center bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition text-sm">Open Google Maps</a>
@@ -122,7 +131,7 @@
             } else {
                 const initialData = {
                     jobs: [
-                        { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: 'Aitur Layout, 3rd Cross, Bengaluru', status: 'Available' }
+                        { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: '13.0827, 80.2707 (Aitur Layout Pin)', status: 'Available' }
                     ],
                     bookings: []
                 };
@@ -144,7 +153,7 @@
                             <div>
                                 <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
                                 <h3 class="font-bold text-slate-800">${job.title}</h3>
-                                <p class="text-xs text-slate-500 font-medium mt-0.5">📍 ${job.location || 'Aitur Layout, Bengaluru'}</p>
+                                <p class="text-xs text-slate-500 font-medium mt-0.5">📍 ${job.location || 'GPS Pin Set'}</p>
                             </div>
                             <div class="text-right">
                                 <span class="block font-bold text-slate-900 mb-2">${job.price}</span>
@@ -178,6 +187,33 @@
             }
         }
 
+        // Function for admin to capture precise GPS coordinates
+        function captureAdminGPS() {
+            const statusText = document.getElementById('gps-pin-status');
+            statusText.innerText = "Acquiring exact satellite GPS pin...";
+            statusText.className = "text-xs text-amber-600 font-medium italic";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude.toFixed(6);
+                        const lng = position.coords.longitude.toFixed(6);
+                        document.getElementById('job-location').value = `${lat}, ${lng} (Live GPS Pin)`;
+                        statusText.innerText = "✅ GPS Pin successfully captured!";
+                        statusText.className = "text-xs text-emerald-600 font-medium";
+                    },
+                    (error) => {
+                        statusText.innerText = "❌ GPS failed. Please type location manually.";
+                        statusText.className = "text-xs text-red-600 font-medium";
+                        alert("Unable to retrieve your location. Please check browser permissions.");
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        }
+
         async function takeBooking(id) {
             db.ref('vitapa_data').once('value').then((snapshot) => {
                 const data = snapshot.val() || { jobs: [], bookings: [] };
@@ -204,7 +240,7 @@
                         const sound = document.getElementById('alert-sound');
                         if(sound) sound.play().catch(e => console.log(e));
 
-                        // Force show precise location modal
+                        // Open precise location modal with Google Maps navigation link
                         document.getElementById('modal-job-location').innerText = job.location;
                         document.getElementById('modal-maps-link').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
                         document.getElementById('location-modal').classList.remove('hidden');
@@ -215,24 +251,6 @@
 
         function closeLocationModal() {
             document.getElementById('location-modal').classList.add('hidden');
-        }
-
-        function resetFreshJob() {
-            const freshJob = {
-                id: Date.now(),
-                title: 'EXPRESS PLUMBING REPAIR',
-                price: '₹400',
-                location: 'Aitur Layout, 3rd Cross, Bengaluru',
-                status: 'Available'
-            };
-            db.ref('vitapa_data').once('value').then((snapshot) => {
-                const data = snapshot.val() || { jobs: [], bookings: [] };
-                if (!data.jobs) data.jobs = [];
-                data.jobs.unshift(freshJob);
-                db.ref('vitapa_data').set(data).then(() => {
-                    alert('New test job added to feed!');
-                });
-            });
         }
 
         function handleAdminLogin() {
@@ -262,7 +280,7 @@
             
             if(title && price) {
                 const formattedPrice = price.startsWith('₹') ? price : '₹' + price;
-                const finalLocation = location ? location : 'Aitur Layout, Bengaluru';
+                const finalLocation = location ? location : 'Aitur Layout, Bengaluru (GPS Pin)';
                 
                 const newJob = {
                     id: Date.now(),
@@ -281,7 +299,8 @@
                         document.getElementById('job-title').value = '';
                         document.getElementById('job-price').value = '';
                         document.getElementById('job-location').value = '';
-                        alert('Job broadcasted with precise location!');
+                        document.getElementById('gps-pin-status').innerText = "Click 'Drop GPS Pin' to use your device's exact location coordinates for this job.";
+                        alert('Job broadcasted live with GPS Pin!');
                     });
                 });
             } else {
