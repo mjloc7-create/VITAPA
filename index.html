@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VITAPA - Hyper-Local Marketplace</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -15,7 +18,7 @@
     <!-- Header -->
     <header class="bg-indigo-600 text-white shadow-md">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Cloud Synced Live</span></h1>
+            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Cloud Live</span></h1>
             <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace View</div>
         </div>
     </header>
@@ -72,68 +75,45 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        VITAPA Hyper-Local Platform &bull; Cloud Synced Live
+        VITAPA Hyper-Local Platform &bull; Firebase Real-Time Cloud
     </footer>
 
     <!-- Audio Alert Element -->
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
-        // Using a reliable public JSON cloud bin for cross-device internet synchronization
-        const CLOUD_BIN_URL = 'https://jsonblob.com/api/json/1347950000000000000'; // Shared cloud endpoint
-        const FALLBACK_KEY = 'vitapa_cloud_fallback_v7';
+        const firebaseConfig = {
+            apiKey: "AIzaSyDinVHUSmPmKn3tC4B21WSFAPzhN57Xyc",
+            authDomain: "vitapa-web.firebaseapp.com",
+            databaseURL: "https://vitapa-web-default-rtdb.firebaseio.com",
+            projectId: "vitapa-web",
+            storageBucket: "vitapa-web.firebasestorage.app",
+            messagingSenderId: "148610716975",
+            appId: "1:148610716975:web:c8241e8db14c3e7h59bkda",
+            measurementId: "G-YMRXJW78EN"
+        };
 
-        async function fetchCloudData() {
-            try {
-                // Default initial state
-                let defaultData = {
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Listen for real-time updates from Firebase database
+        db.ref('vitapa_data').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                renderApp(data.jobs || [], data.bookings || []);
+            } else {
+                const initialData = {
                     jobs: [
                         { id: 1, title: 'DANCE FITNESS', price: '₹500', location: '560096', status: 'Available' },
                         { id: 2, title: 'COSTUME FITTING & RENTAL', price: '₹500', location: 'AITUR LAYOUT - 12m away', status: 'Available' }
                     ],
                     bookings: []
                 };
-
-                // Try fetching from cloud storage
-                const res = await fetch('https://api.npoint.io/4014271887e35b719488');
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.jobs) {
-                        localStorage.setItem(FALLBACK_KEY, JSON.stringify(data));
-                        return data;
-                    }
-                }
-                
-                // Fallback to local storage cache if offline
-                const local = localStorage.getItem(FALLBACK_KEY);
-                return local ? JSON.parse(local) : defaultData;
-            } catch (e) {
-                const local = localStorage.getItem(FALLBACK_KEY);
-                return local ? JSON.parse(local) : { jobs: [], bookings: [] };
+                db.ref('vitapa_data').set(initialData);
             }
-        }
+        });
 
-        async function saveCloudData(data) {
-            localStorage.setItem(FALLBACK_KEY, JSON.stringify(data));
-            renderApp(data);
-
-            try {
-                // Push update to public cloud JSON bin
-                await fetch('https://api.npoint.io/4014271887e35b719488', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-            } catch (err) {
-                console.log('Cloud sync queued locally');
-            }
-        }
-
-        async function renderApp(forcedData = null) {
-            const cloudData = forcedData || await fetchCloudData();
-            const activeJobs = cloudData.jobs || [];
-            const acceptedBookings = cloudData.bookings || [];
-
+        function renderApp(activeJobs, acceptedBookings) {
             const feed = document.getElementById('listings-feed');
             if (feed) {
                 feed.innerHTML = '';
@@ -182,30 +162,33 @@
         }
 
         async function takeBooking(id) {
-            let cloudData = await fetchCloudData();
-            const job = cloudData.jobs.find(j => j.id === id);
-            if (job) {
-                const clientName = prompt("Enter your name to confirm booking:", "Client");
-                if (!clientName) return;
+            db.ref('vitapa_data').once('value').then((snapshot) => {
+                const data = snapshot.val() || { jobs: [], bookings: [] };
+                const job = data.jobs.find(j => j.id === id);
+                if (job) {
+                    const clientName = prompt("Enter your name to confirm booking:", "Client");
+                    if (!clientName) return;
 
-                job.status = 'Booked';
+                    job.status = 'Booked';
 
-                const newBooking = {
-                    id: Date.now(),
-                    title: job.title,
-                    price: job.price,
-                    client: clientName,
-                    time: new Date().toLocaleTimeString()
-                };
+                    const newBooking = {
+                        id: Date.now(),
+                        title: job.title,
+                        price: job.price,
+                        client: clientName,
+                        time: new Date().toLocaleTimeString()
+                    };
 
-                cloudData.bookings.unshift(newBooking);
-                await saveCloudData(cloudData);
+                    if (!data.bookings) data.bookings = [];
+                    data.bookings.unshift(newBooking);
 
-                const sound = document.getElementById('alert-sound');
-                if(sound) sound.play().catch(e => console.log(e));
-
-                alert("Booking accepted successfully! Synced to Admin Dashboard.");
-            }
+                    db.ref('vitapa_data').set(data).then(() => {
+                        const sound = document.getElementById('alert-sound');
+                        if(sound) sound.play().catch(e => console.log(e));
+                        alert("Booking accepted! Synced instantly to Admin Dashboard.");
+                    });
+                }
+            });
         }
 
         function handleAdminLogin() {
@@ -216,7 +199,6 @@
                 document.getElementById('admin-dashboard').classList.remove('hidden');
                 document.getElementById('marketplace-section').classList.add('hidden');
                 document.getElementById('user-role-badge').innerText = 'Admin Dashboard Active';
-                renderApp();
             } else {
                 alert('Please enter admin credentials.');
             }
@@ -227,10 +209,9 @@
             document.getElementById('admin-dashboard').classList.add('hidden');
             document.getElementById('marketplace-section').classList.remove('hidden');
             document.getElementById('user-role-badge').innerText = 'Marketplace View';
-            renderApp();
         }
 
-        async function postJob() {
+        function postJob() {
             const title = document.getElementById('job-title').value;
             const price = document.getElementById('job-price').value;
             const location = document.getElementById('job-location').value;
@@ -247,21 +228,22 @@
                     status: 'Available'
                 };
                 
-                let cloudData = await fetchCloudData();
-                cloudData.jobs.unshift(newJob);
-                await saveCloudData(cloudData);
+                db.ref('vitapa_data').once('value').then((snapshot) => {
+                    const data = snapshot.val() || { jobs: [], bookings: [] };
+                    if (!data.jobs) data.jobs = [];
+                    data.jobs.unshift(newJob);
 
-                document.getElementById('job-title').value = '';
-                document.getElementById('job-price').value = '';
-                document.getElementById('job-location').value = '';
-                alert('Job broadcasted successfully!');
+                    db.ref('vitapa_data').set(data).then(() => {
+                        document.getElementById('job-title').value = '';
+                        document.getElementById('job-price').value = '';
+                        document.getElementById('job-location').value = '';
+                        alert('Job broadcasted live to all devices!');
+                    });
+                });
             } else {
                 alert('Please fill in service name and price.');
             }
         }
-
-        // Auto-refresh every 3 seconds to pull live cross-device updates
-        setInterval(() => renderApp(), 3000);
 
         setTimeout(() => {
             const gps = document.getElementById('gps-status');
@@ -270,8 +252,6 @@
                 gps.className = 'text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium';
             }
         }, 1000);
-
-        renderApp();
     </script>
 </body>
 </html>
