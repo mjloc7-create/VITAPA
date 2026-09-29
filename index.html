@@ -8,20 +8,9 @@
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    <!-- Google Maps Places API for Bengaluru Autocomplete -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDinVHUSmPmKn3tC4B21WSFAPzhN57Xyc&libraries=places"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Style the Google Places Autocomplete dropdown so it looks clean and readable */
-        .pac-container {
-            z-index: 99999 !important;
-            font-family: 'Inter', sans-serif;
-            border-radius: 0.5rem;
-            margin-top: 4px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e2e8f0;
-        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -58,13 +47,19 @@
                     <input type="text" id="job-title" placeholder="Service Name (e.g., Dance Fitness)" class="w-full px-4 py-2 border rounded-lg">
                     <input type="text" id="job-price" placeholder="Price in INR (e.g., ₹500)" class="w-full px-4 py-2 border rounded-lg">
                     
-                    <!-- Venue Autocomplete & GPS Pin Section -->
-                    <div class="space-y-2">
+                    <!-- Venue & Bengaluru Quick-Select Location Section -->
+                    <div class="space-y-2 relative">
                         <div class="flex gap-2">
-                            <input type="text" id="job-location" placeholder="Type venue name or area in Bengaluru (e.g., Orion Mall)..." class="flex-1 px-4 py-2 border rounded-lg text-sm bg-slate-50">
+                            <input type="text" id="job-location" placeholder="Type or select Bengaluru venue..." class="flex-1 px-4 py-2 border rounded-lg text-sm bg-slate-50" oninput="filterVenues(this.value)" onfocus="showVenueDropdown()">
                             <button onclick="captureAdminGPS()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition whitespace-nowrap">📍 Drop GPS Pin</button>
                         </div>
-                        <p id="gps-pin-status" class="text-xs text-slate-500 italic">Type any venue name to see Bengaluru suggestions, or click 'Drop GPS Pin'.</p>
+                        
+                        <!-- Bengaluru Quick Dropdown -->
+                        <div id="venue-dropdown" class="hidden absolute left-0 right-16 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                            <!-- Populated via JS -->
+                        </div>
+
+                        <p id="gps-pin-status" class="text-xs text-slate-500 italic">Click the input box to pick a Bengaluru area, or click 'Drop GPS Pin'.</p>
                     </div>
 
                     <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition">Broadcast Job Live with Venue Location</button>
@@ -159,23 +154,60 @@
         const db = firebase.database();
 
         let lastCancellationId = null;
-        let autocomplete;
 
-        // Initialize Google Places Autocomplete restricted to Bengaluru, India
-        window.addEventListener('load', () => {
-            const input = document.getElementById('job-location');
-            if (input && window.google && window.google.maps && window.google.maps.places) {
-                const bengaluruBounds = new google.maps.LatLngBounds(
-                    new google.maps.LatLng(12.834, 77.399), // Southwest Bengaluru
-                    new google.maps.LatLng(13.155, 77.839)  // Northeast Bengaluru
-                );
+        // Popular Bengaluru Venues & Hubs Database
+        const bengaluruVenues = [
+            "Mother Teresa Public School, Attur Layout, Yelahanka, Bengaluru",
+            "Orion Mall, Rajajinagar, Bengaluru",
+            "Phoenix Marketcity, Whitefield, Bengaluru",
+            "Mantri Square Mall, Malleshwaram, Bengaluru",
+            "Forum Mall, Koramangala, Bengaluru",
+            "UB City, Vittal Mallya Road, Bengaluru",
+            "MG Road Boulevard, Bengaluru",
+            "Indiranagar 100ft Road, Bengaluru",
+            "Jayanagar 4th Block, Bengaluru",
+            "Koramangala 5th Block, Bengaluru",
+            "Whitefield Main Road, Bengaluru",
+            "Electronic City Phase 1, Bengaluru",
+            "Hebbal Flyover Junction, Bengaluru",
+            "Krantiveera Sangolli Rayanna Railway Station, Majestic, Bengaluru",
+            "Kempegowda International Airport Road, Yelahanka, Bengaluru"
+        ];
 
-                autocomplete = new google.maps.places.Autocomplete(input, {
-                    bounds: bengaluruBounds,
-                    strictBounds: false,
-                    componentRestrictions: { country: 'in' },
-                    fields: ['formatted_address', 'name', 'geometry']
-                });
+        function showVenueDropdown() {
+            renderVenueList(bengaluruVenues);
+            document.getElementById('venue-dropdown').classList.remove('hidden');
+        }
+
+        function filterVenues(query) {
+            const filtered = bengaluruVenues.filter(v => v.toLowerCase().includes(query.toLowerCase()));
+            renderVenueList(filtered);
+            document.getElementById('venue-dropdown').classList.remove('hidden');
+        }
+
+        function renderVenueList(venues) {
+            const dropdown = document.getElementById('venue-dropdown');
+            dropdown.innerHTML = '';
+            if (venues.length === 0) {
+                dropdown.innerHTML = '<div class="p-2 text-xs text-slate-400">Custom venue will be used</div>';
+                return;
+            }
+            venues.forEach(v => {
+                const item = document.createElement('div');
+                item.className = 'p-2.5 text-xs text-slate-700 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 font-medium';
+                item.innerText = '📍 ' + v;
+                item.onclick = () => {
+                    document.getElementById('job-location').value = v;
+                    dropdown.classList.add('hidden');
+                };
+                dropdown.appendChild(item);
+            });
+        }
+
+        // Hide dropdown when clicking outside
+        window.addEventListener('click', (e) => {
+            if (!e.target.closest('#job-location') && !e.target.closest('#venue-dropdown')) {
+                document.getElementById('venue-dropdown').classList.add('hidden');
             }
         });
 
@@ -216,7 +248,7 @@
                                 <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
                                 <h3 class="font-bold text-slate-800">${job.title}</h3>
                                 <a href="${mapsUrl}" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold mt-1 hover:underline bg-indigo-50 px-2 py-1 rounded">
-                                    🚀 ${job.location || 'Start Navigation'} (Start Navigating)
+                                    🚀 ${job.location || 'Start Navigation'}
                                 </a>
                             </div>
                             <div class="text-right">
@@ -416,11 +448,10 @@
                     data.jobs.unshift(newJob);
 
                     db.ref('vitapa_data').set(data).then(() => {
-                        document.getElementById('job-title').value =- '';
                         document.getElementById('job-title').value = '';
                         document.getElementById('job-price').value = '';
                         document.getElementById('job-location').value = '';
-                        document.getElementById('gps-pin-status').innerText = "Type any venue name to see Bengaluru suggestions, or click 'Drop GPS Pin'.";
+                        document.getElementById('gps-pin-status').innerText = "Click the input box to pick a Bengaluru area, or click 'Drop GPS Pin'.";
                         alert('Job broadcasted live with venue location!');
                     });
                 });
