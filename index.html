@@ -123,7 +123,7 @@
                         const bItem = document.createElement('div');
                         bItem.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center text-sm';
                         bItem.innerHTML = `
-                            <div><strong>${b.title}</strong> (${b.price}) accepted by client.</div>
+                            <div><strong>${b.title}</strong> (${b.price}) booked by <strong>${b.client}</strong></div>
                             <span class="text-xs text-emerald-700 font-semibold">${b.time}</span>
                         `;
                         adminList.appendChild(bItem);
@@ -135,11 +135,15 @@
         function takeBooking(id) {
             const job = activeJobs.find(j => j.id === id);
             if (job) {
+                const clientName = prompt("Enter your name to confirm booking:", "Client");
+                if (!clientName) return; // cancelled
+
                 job.status = 'Booked';
                 
                 const newBooking = {
                     title: job.title,
                     price: job.price,
+                    client: clientName,
                     time: new Date().toLocaleTimeString()
                 };
                 acceptedBookings.unshift(newBooking);
@@ -149,8 +153,7 @@
 
                 renderApp();
 
-                // Clean popup without the transaction ID string
-                alert("Booking accepted successfully! The service provider has been notified.");
+                alert("Booking accepted successfully! Admin has been notified.");
             }
         }
 
