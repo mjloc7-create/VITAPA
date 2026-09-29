@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VITAPA - Hyper-Local Marketplace</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -16,7 +15,7 @@
     <!-- Header -->
     <header class="bg-indigo-600 text-white shadow-md">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Cloud Real-Time</span></h1>
+            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Cloud REST</span></h1>
             <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace View</div>
         </div>
     </header>
@@ -72,29 +71,43 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        VITAPA Hyper-Local Platform &bull; Cloud Synced
+        VITAPA Hyper-Local Platform &bull; Cloud REST Synced
     </footer>
 
     <!-- Audio Alert Element -->
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
-        // Initialize Supabase Client with Correct URL and Key
         const SUPABASE_URL = 'https://grckpwfmuaqscfthtkcv.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyY2twd2ZmuaqscfthtkcvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2NjgxMjksImV4cCI6MjEwNjI0NDEyOX0.xAdEXrwObR3B7QxTtaYHn5FC3G9Ms_fcBJTMs5i5Gzc';
-        const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_KEY = 'sb_publishable_GGAECFa0SrLgOkdi6g05LA_pEv88yAj';
 
         let activeJobs = [];
         let acceptedBookings = [];
 
         async function fetchAppData() {
-            const { data: jobs, error: jobErr } = await client.from('jobs').select('*').order('id', { ascending: false });
-            if (!jobErr && jobs) activeJobs = jobs;
+            try {
+                // Fetch Jobs via REST
+                const jobRes = await fetch(`${SUPABASE_URL}/rest/v1/jobs?select=*&order=id.desc`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                if (jobRes.ok) activeJobs = await jobRes.json();
 
-            const { data: bookings, error: bookErr } = await client.from('bookings').select('*').order('id', { ascending: false });
-            if (!bookErr && bookings) acceptedBookings = bookings;
+                // Fetch Bookings via REST
+                const bookRes = await fetch(`${SUPABASE_URL}/rest/v1/bookings?select=*&order=id.desc`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                if (bookRes.ok) acceptedBookings = await bookRes.json();
 
-            renderApp();
+                renderApp();
+            } catch (err) {
+                console.error('Error fetching data:', err);
+            }
         }
 
         function renderApp() {
@@ -151,8 +164,19 @@
                 const clientName = prompt("Enter your name to confirm booking:", "Client");
                 if (!clientName) return;
 
-                await client.from('jobs').update({ status: 'Booked' }).eq('id', id);
+                // Update job status
+                await fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ status: 'Booked' })
+                });
 
+                // Insert booking
                 const newBooking = {
                     id: Date.now(),
                     title: job.title,
@@ -160,7 +184,17 @@
                     client: clientName,
                     time: new Date().toLocaleTimeString()
                 };
-                await client.from('bookings').insert([newBooking]);
+
+                await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(newBooking)
+                });
 
                 alert("Booking accepted successfully! Admin has been notified.");
                 fetchAppData();
@@ -201,9 +235,20 @@
                     status: 'Available'
                 };
                 
-                const { error } = await client.from('jobs').insert([newJob]);
-                if (error) {
-                    alert('Error posting job: ' + error.message);
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/jobs`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(newJob)
+                });
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    alert('Error posting job: ' + errText);
                     return;
                 }
 
@@ -216,19 +261,8 @@
             }
         }
 
-        client
-            .channel('public:vitapa')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
-                fetchAppData();
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, (payload) => {
-                const sound = document.getElementById('alert-sound');
-                if (sound) {
-                    sound.play().catch(err => console.log('Audio autoplay blocked until interaction'));
-                }
-                fetchAppData();
-            })
-            .subscribe();
+        // Poll every 3 seconds for real-time cross-device updates without client SDK errors
+        setInterval(fetchAppData, 3000);
 
         setTimeout(() => {
             const gps = document.getElementById('gps-status');
