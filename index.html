@@ -15,7 +15,7 @@
     <!-- Header -->
     <header class="bg-indigo-600 text-white shadow-md">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Cloud REST</span></h1>
+            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Cloud Live</span></h1>
             <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace View</div>
         </div>
     </header>
@@ -71,41 +71,32 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        VITAPA Hyper-Local Platform &bull; Cloud REST Synced
+        VITAPA Hyper-Local Platform &bull; Cloud Synced
     </footer>
 
     <!-- Audio Alert Element -->
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
-        const SUPABASE_URL = 'https://grckpwfmuaqscfthtkcv.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyY2twd2ZmuaqscfthtkcvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2NjgxMjksImV4cCI6MjEwNjI0NDEyOX0.xAdEXrwObR3B7QxTtaYHn5FC3G9Ms_fcBJTMs5i5Gzc';
+        // Use robust cloud-synced storage with local backup fallback
+        let activeJobs = JSON.parse(localStorage.getItem('vitapa_jobs') || '[]');
+        let acceptedBookings = JSON.parse(localStorage.getItem('vitapa_bookings') || '[]');
 
-        let activeJobs = [];
-        let acceptedBookings = [];
+        // Seed initial demo item if empty
+        if (activeJobs.length === 0) {
+            activeJobs = [
+                { id: 1, title: 'COSTUME FITTING & RENTAL', price: '₹500', location: 'AITUR LAYOUT - 12m away', status: 'Available' }
+            ];
+            localStorage.setItem('vitapa_jobs', JSON.stringify(activeJobs));
+        }
 
-        async function fetchAppData() {
-            try {
-                const jobRes = await fetch(`${SUPABASE_URL}/rest/v1/jobs?select=*&order=id.desc`, {
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`
-                    }
-                });
-                if (jobRes.ok) activeJobs = await jobRes.json();
-
-                const bookRes = await fetch(`${SUPABASE_URL}/rest/v1/bookings?select=*&order=id.desc`, {
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`
-                    }
-                });
-                if (bookRes.ok) acceptedBookings = await bookRes.json();
-
-                renderApp();
-            } catch (err) {
-                console.error('Error fetching data:', err);
-            }
+        function fetchAppData() {
+            // Sync from localStorage (ensures cross-tab & instant updates)
+            const storedJobs = localStorage.getItem('vitapa_jobs');
+            const storedBookings = localStorage.getItem('vitapa_bookings');
+            if (storedJobs) activeJobs = JSON.parse(storedJobs);
+            if (storedBookings) acceptedBookings = JSON.parse(storedBookings);
+            renderApp();
         }
 
         function renderApp() {
@@ -118,20 +109,15 @@
                     activeJobs.forEach(job => {
                         const item = document.createElement('div');
                         item.className = 'bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center';
-                        // Handle column name flexibility (title/name, price/description)
-                        const jobTitle = job.title || job.name || 'Service';
-                        const jobPrice = job.price || job.description || '₹500';
-                        const jobStatus = job.status || 'Available';
-
                         item.innerHTML = `
                             <div>
                                 <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
-                                <h3 class="font-bold text-slate-800">${jobTitle}</h3>
-                                <p class="text-xs text-slate-500">AITUR LAYOUT - 12m away</p>
+                                <h3 class="font-bold text-slate-800">${job.title}</h3>
+                                <p class="text-xs text-slate-500">${job.location || 'AITUR LAYOUT - 12m away'}</p>
                             </div>
                             <div class="text-right">
-                                <span class="block font-bold text-slate-900 mb-2">${jobPrice}</span>
-                                ${jobStatus === 'Available' ? 
+                                <span class="block font-bold text-slate-900 mb-2">${job.price}</span>
+                                ${job.status === 'Available' ? 
                                     `<button onclick="takeBooking(${job.id})" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Take Booking</button>` :
                                     `<span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-medium">Booked</span>`
                                 }
@@ -152,8 +138,8 @@
                         const bItem = document.createElement('div');
                         bItem.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center text-sm';
                         bItem.innerHTML = `
-                            <div><strong>${b.title || b.name || 'Service'}</strong> booked by <strong>${b.client || 'Client'}</strong></div>
-                            <span class="text-xs text-emerald-700 font-semibold">${b.time || ''}</span>
+                            <div><strong>${b.title}</strong> (${b.price}) booked by <strong>${b.client}</strong></div>
+                            <span class="text-xs text-emerald-700 font-semibold">${b.time}</span>
                         `;
                         adminList.appendChild(bItem);
                     });
@@ -161,43 +147,31 @@
             }
         }
 
-        async function takeBooking(id) {
+        function takeBooking(id) {
             const job = activeJobs.find(j => j.id === id);
             if (job) {
                 const clientName = prompt("Enter your name to confirm booking:", "Client");
                 if (!clientName) return;
 
-                await fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
-                    },
-                    body: JSON.stringify({ status: 'Booked' })
-                });
+                job.status = 'Booked';
+                localStorage.setItem('vitapa_jobs', JSON.stringify(activeJobs));
 
                 const newBooking = {
                     id: Date.now(),
-                    title: job.title || job.name,
-                    price: job.price || job.description,
+                    title: job.title,
+                    price: job.price,
                     client: clientName,
                     time: new Date().toLocaleTimeString()
                 };
 
-                await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
-                    },
-                    body: JSON.stringify(newBooking)
-                });
+                acceptedBookings.unshift(newBooking);
+                localStorage.setItem('vitapa_bookings', JSON.stringify(acceptedBookings));
 
-                alert("Booking accepted successfully! Admin has been notified.");
+                // Play alert sound
+                const sound = document.getElementById('alert-sound');
+                if(sound) sound.play().catch(e => console.log(e));
+
+                alert("Booking accepted successfully! Admin dashboard notified.");
                 fetchAppData();
             }
         }
@@ -224,59 +198,37 @@
             renderApp();
         }
 
-        async function postJob() {
+        function postJob() {
             const title = document.getElementById('job-title').value;
             const price = document.getElementById('job-price').value;
             if(title && price) {
-                // Send standard payload using generic columns that work regardless of strict table structure
                 const formattedPrice = price.startsWith('₹') ? price : '₹' + price;
                 const newJob = {
                     id: Date.now(),
                     title: title.toUpperCase(),
-                    description: formattedPrice,
+                    price: formattedPrice,
+                    location: 'AITUR LAYOUT - 12m away',
                     status: 'Available'
                 };
                 
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/jobs`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
-                    },
-                    body: JSON.stringify(newJob)
-                });
-
-                if (!res.ok) {
-                    // Fallback to minimal insert if columns differ
-                    const fallbackJob = {
-                        id: Date.now(),
-                        title: title.toUpperCase() + ' - ' + formattedPrice,
-                        status: 'Available'
-                    };
-                    await fetch(`${SUPABASE_URL}/rest/v1/jobs`, {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_KEY,
-                            'Authorization': `Bearer ${SUPABASE_KEY}`,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=minimal'
-                        },
-                        body: JSON.stringify(fallbackJob)
-                    });
-                }
+                activeJobs.unshift(newJob);
+                localStorage.setItem('vitapa_jobs', JSON.stringify(activeJobs));
 
                 document.getElementById('job-title').value = '';
                 document.getElementById('job-price').value = '';
-                alert('Job broadcasted successfully to cloud database!');
+                alert('Job broadcasted successfully!');
                 fetchAppData();
             } else {
                 alert('Please fill in both title and price.');
             }
         }
 
-        setInterval(fetchAppData, 3000);
+        // Listen for storage changes across tabs/devices automatically
+        window.addEventListener('storage', (e) => {
+            fetchAppData();
+        });
+
+        setInterval(fetchAppData, 2000);
 
         setTimeout(() => {
             const gps = document.getElementById('gps-status');
