@@ -8,7 +8,7 @@
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-    <!-- Leaflet Map CSS & JS -->
+    <!-- Leaflet Map CSS & JS (OpenStreetMap) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- QRCode Generator & Scanner Library -->
@@ -119,7 +119,7 @@
                         </div>
                     </div>
 
-                    <!-- Location Setting Options Section -->
+                    <!-- OpenStreetMap Location Setting Options Section -->
                     <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide">📍 Choose Location Setting Method (200m Geofence)</label>
                         <div class="space-y-1">
@@ -131,8 +131,8 @@
                         </div>
 
                         <div class="flex flex-wrap gap-2 pt-1">
-                            <button onclick="openMapPickerModal()" class="flex-1 bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-amber-700 transition shadow-sm">🗺️️ Drag and Set on Map</button>
-                            <button onclick="captureAdminGPS()" class="flex-1 bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-emerald-700 transition shadow-sm">📌 Pin Current Location</button>
+                            <button onclick="openMapPickerModal()" class="flex-1 bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-amber-700 transition shadow-sm">🗺 Drag and Set on OpenStreetMap</button>
+                            <button onclick="captureAdminGPS()" class="flex-1 bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-emerald-700 transition shadow-sm">📌 Pin Current GPS</button>
                         </div>
                     </div>
 
@@ -254,14 +254,14 @@
             </div>
         </div>
 
-        <!-- Interactive Drag-and-Drop Map Modal -->
+        <!-- Interactive OpenStreetMap Drag-and-Drop Map Modal -->
         <div id="map-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
             <div class="bg-white p-6 rounded-2xl max-w-lg w-full shadow-2xl space-y-4 border border-slate-100">
                 <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="text-lg font-bold text-indigo-600 flex items-center gap-2"><span>🗺️</span> Drag Marker to Set Location</h3>
+                    <h3 class="text-lg font-bold text-indigo-600 flex items-center gap-2"><span>🗺️</span> Drag Marker on OpenStreetMap</h3>
                     <button onclick="closeMapModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
                 </div>
-                <p class="text-xs text-slate-600">Drag the red pin on the map to your exact building or landmark in Bengaluru:</p>
+                <p class="text-xs text-slate-600">Drag the red pin on the OpenStreetMap view to your exact building or landmark:</p>
                 <div id="map"></div>
                 <div class="bg-slate-50 p-3 rounded-lg border text-xs font-medium text-slate-700">
                     Selected Location: <span id="modal-coords-label" class="text-indigo-600 font-bold">Dragging map...</span>
@@ -311,7 +311,7 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        VITAPA Hyper-Local Platform &bull; Secure Geofenced Attendance & Job Closure Cloud
+        VITAPA Hyper-Local Platform &bull; Secure Geofenced Attendance & OpenStreetMap Integration
     </footer>
 
     <!-- Audio Alert Element -->
@@ -424,6 +424,7 @@
             }
         }
 
+        // OpenStreetMap Nominatim Live Search
         function searchLiveMaps(query) {
             const dropdown = document.getElementById('live-map-results');
             if (!query || query.length < 3) {
@@ -481,7 +482,7 @@
 
         function updateCoordsLabel(lat, lng) {
             const label = document.getElementById('modal-coords-label');
-            label.innerText = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)} (Fetching address...)`;
+            label.innerText = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)} (Fetching OpenStreetMap address...)`;
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
                 .then(res => res.json())
                 .then(data => {
@@ -499,7 +500,7 @@
             document.getElementById('map-modal').classList.add('hidden');
         }
 
-        // High-Accuracy Geolocation Pinning for Admin
+        // High-Accuracy GPS Pinning with OpenStreetMap Reverse Geocoding
         function captureAdminGPS() {
             if (navigator.geolocation) {
                 const locInput = document.getElementById('job-location');
@@ -516,7 +517,7 @@
                             .then(data => {
                                 const resolvedAddress = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
                                 locInput.value = resolvedAddress;
-                                alert(`Precise GPS Pin Captured Successfully!\nAccuracy: Within ${Math.round(accuracy)} meters.`);
+                                alert(`Precise GPS Pin Captured Successfully via OpenStreetMap!\nAccuracy: Within ${Math.round(accuracy)} meters.`);
                             })
                             .catch(() => {
                                 locInput.value = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
