@@ -79,20 +79,18 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
-        // Initialize Supabase Client
+        // Initialize Supabase Client with Correct URL and Key
         const SUPABASE_URL = 'https://grckpwfmuaqscfthtkcv.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyY2tpwfmuaqscfthtkcvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2NjgxMjksImV4cCI6MjEwNjI0NDEyOX0.xAdEXrwObR3B7QxTtaYHn5FC3G9Ms_fcBJTMs5i5Gzc';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyY2twd2ZmuaqscfthtkcvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2NjgxMjksImV4cCI6MjEwNjI0NDEyOX0.xAdEXrwObR3B7QxTtaYHn5FC3G9Ms_fcBJTMs5i5Gzc';
         const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let activeJobs = [];
         let acceptedBookings = [];
 
         async function fetchAppData() {
-            // Fetch jobs
             const { data: jobs, error: jobErr } = await client.from('jobs').select('*').order('id', { ascending: false });
             if (!jobErr && jobs) activeJobs = jobs;
 
-            // Fetch bookings
             const { data: bookings, error: bookErr } = await client.from('bookings').select('*').order('id', { ascending: false });
             if (!bookErr && bookings) acceptedBookings = bookings;
 
@@ -153,11 +151,10 @@
                 const clientName = prompt("Enter your name to confirm booking:", "Client");
                 if (!clientName) return;
 
-                // Update job status in Supabase
                 await client.from('jobs').update({ status: 'Booked' }).eq('id', id);
 
-                // Insert booking record into Supabase
                 const newBooking = {
+                    id: Date.now(),
                     title: job.title,
                     price: job.price,
                     client: clientName,
@@ -219,7 +216,6 @@
             }
         }
 
-        // Realtime Supabase Listeners for Cross-Device Sync & Audio Chime
         client
             .channel('public:vitapa')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
@@ -242,7 +238,6 @@
             }
         }, 1000);
 
-        // Initial Data Load
         fetchAppData();
     </script>
 </body>
