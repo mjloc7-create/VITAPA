@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VITAPA - Hyper-Local Marketplace & Secure Attendance</title>
+    <title>VITAPA - Hyper-Local Marketplace & Secure Geofenced Attendance</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -25,8 +25,8 @@
     <!-- Header -->
     <header class="bg-indigo-600 text-white shadow-md">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Secure Attendance</span></h1>
-            <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace & Scanner View</div>
+            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Geofenced Attendance</span></h1>
+            <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace & Verification View</div>
         </div>
     </header>
 
@@ -102,7 +102,7 @@
                     <h2 class="text-lg font-semibold text-slate-700">🔒 Secure Live Attendance Dashboard</h2>
                     <button onclick="openAttendanceQRModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow-sm">📱 Open Live Anti-Cheat Attendance QR</button>
                 </div>
-                <p class="text-xs text-slate-500 mb-3">Display the live rolling QR code on your tablet/screen at the venue. Workers scan it to record verified attendance.</p>
+                <p class="text-xs text-slate-500 mb-3">Display the live rolling QR code on your tablet/screen at the venue. Workers must verify GPS location first, then scan it.</p>
                 <div id="admin-attendance-list" class="space-y-3">
                     <p class="text-sm text-slate-400 italic">No attendance marked yet today.</p>
                 </div>
@@ -117,16 +117,37 @@
             </div>
         </div>
 
-        <!-- Marketplace Feed (For Workers / Tablets) -->
+        <!-- Marketplace Feed & Geofenced Attendance Panel (For Workers) -->
         <div id="marketplace-section" class="space-y-6">
-            <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row justify-between items-center gap-4">
-                <div>
-                    <h2 class="text-xl font-bold">Worker Attendance Scanner</h2>
-                    <p class="text-xs text-indigo-200 mt-1">Arrived at the job location? Scan the admin's rolling venue QR code to check in securely.</p>
+            <!-- Worker Attendance Gate Box -->
+            <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white p-6 rounded-2xl shadow-md space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold">Worker Attendance Gate</h2>
+                        <p class="text-xs text-indigo-200 mt-1">Step 1: Arrive at location & verify GPS. Step 2: Unlock scanner & scan venue QR.</p>
+                    </div>
+                    <div class="w-full md:w-auto">
+                        <label class="block text-xs font-semibold text-indigo-200 mb-1">Your Full Name:</label>
+                        <input type="text" id="worker-name-input" placeholder="Enter Your Name..." class="w-full md:w-48 px-3 py-2 rounded-lg text-slate-900 text-sm font-medium focus:outline-none">
+                    </div>
                 </div>
-                <button onclick="openScannerModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg text-sm flex items-center gap-2 whitespace-nowrap">
-                    <span>📷</span> Open QR Scanner
-                </button>
+
+                <div class="bg-indigo-900 bg-opacity-50 p-4 rounded-xl border border-indigo-500/30 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold uppercase tracking-wider text-indigo-200">🛡️ Geofence Verification Status</span>
+                        <span id="geofence-badge" class="text-xs bg-amber-500 text-white px-3 py-1 rounded-full font-bold">⚠️ GPS Not Verified</span>
+                    </div>
+                    <p id="geofence-status-text" class="text-xs text-indigo-100">Tap below when you reach the venue location to verify your coordinates (must be within 100 meters).</p>
+                    
+                    <div class="flex flex-wrap gap-3 pt-1">
+                        <button onclick="verifyWorkerGPS()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-bold transition shadow-md text-xs flex items-center justify-center gap-2">
+                            <span>📍</span> 1. Verify My Arrival GPS
+                        </button>
+                        <button id="open-scanner-btn" disabled onclick="openScannerModal()" class="flex-1 bg-slate-400 cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-bold transition shadow-md text-xs flex items-center justify-center gap-2 opacity-60">
+                            <span>📷</span> 2. Open QR Scanner (Locked)
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="flex justify-between items-center mb-2">
@@ -170,11 +191,7 @@
                     <h3 class="text-base font-bold text-emerald-600 flex items-center gap-2"><span>📷</span> Scan Venue QR Code</h3>
                     <button onclick="closeScannerModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
                 </div>
-                <p class="text-xs text-slate-600">Point your camera at the admin's live refreshing venue QR code.</p>
-                
-                <div class="space-y-2">
-                    <input type="text" id="worker-name-input" placeholder="Enter Your Full Name..." class="w-full px-3 py-2 border rounded-lg text-sm font-medium">
-                </div>
+                <p class="text-xs text-slate-600">GPS verified successfully! Point your camera at the admin's live refreshing venue QR code.</p>
 
                 <div id="reader" class="w-full overflow-hidden rounded-xl border border-slate-200"></div>
 
@@ -241,7 +258,7 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        VITAPA Hyper-Local Platform &bull; Secure Anti-Cheat Attendance Cloud
+        VITAPA Hyper-Local Platform &bull; Secure Geofenced Attendance Cloud
     </footer>
 
     <!-- Audio Alert Element -->
@@ -273,6 +290,7 @@
         let qrTimerInterval = null;
         let countdownInterval = null;
         let html5QrCode = null;
+        let isGpsVerified = false;
 
         window.addEventListener('load', () => {
             const savedAddr = localStorage.getItem('vitapa_default_location');
@@ -428,6 +446,106 @@
             }
         }
 
+        // Calculate distance between two lat/lng points in meters (Haversine formula)
+        function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Radius of the earth in meters
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        // --- WORKER GEOFENCE GPS VERIFICATION ---
+        function verifyWorkerGPS() {
+            const workerName = document.getElementById('worker-name-input').value.trim();
+            if (!workerName) {
+                alert("Please enter your name first!");
+                document.getElementById('worker-name-input').focus();
+                return;
+            }
+            localStorage.setItem('vitapa_worker_name', workerName);
+
+            const statusBadge = document.getElementById('geofence-badge');
+            const statusText = document.getElementById('geofence-status-text');
+            statusText.innerText = "🛰️ Acquiring your current GPS coordinates to verify venue distance...";
+            statusBadge.innerText = "⏳ Checking GPS...";
+            statusBadge.className = "text-xs bg-indigo-500 text-white px-3 py-1 rounded-full font-bold";
+
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+
+                    // Fetch active job location coordinates
+                    db.ref('vitapa_data/jobs').once('value').then((snapshot) => {
+                        const jobs = snapshot.val() || [];
+                        if (jobs.length === 0) {
+                            statusText.innerText = "❌ No active jobs found on platform to match location.";
+                            statusBadge.innerText = "⚠️ No Venue Found";
+                            statusBadge.className = "text-xs bg-red-500 text-white px-3 py-1 rounded-full font-bold";
+                            return;
+                        }
+
+                        // Take the most recent active job location or user selected job
+                        const targetLocationQuery = jobs[0].location;
+
+                        // Geocode target location using Nominatim
+                        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(targetLocationQuery)}&limit=1`)
+                            .then(res => res.json())
+                            .then(geoData => {
+                                if (geoData && geoData.length > 0) {
+                                    const targetLat = parseFloat(geoData[0].lat);
+                                    const targetLng = parseFloat(geoData[0].lon);
+
+                                    const distanceMeters = getDistanceFromLatLonInMeters(userLat, userLng, targetLat, targetLng);
+
+                                    // Allow within 100 meters geofence radius
+                                    if (distanceMeters <= 100) {
+                                        isGpsVerified = true;
+                                        statusBadge.innerText = "✅ GPS Verified (Within " + Math.round(distanceMeters) + "m)";
+                                        statusBadge.className = "text-xs bg-emerald-500 text-white px-3 py-1 rounded-full font-bold";
+                                        statusText.innerText = "🎉 Location matched successfully! Step 2 is now unlocked.";
+
+                                        const scannerBtn = document.getElementById('open-scanner-btn');
+                                        scannerBtn.disabled = false;
+                                        scannerBtn.classList.remove('bg-slate-400', 'cursor-not-allowed', 'opacity-60');
+                                        scannerBtn.classList.add('bg-emerald-500', 'hover:bg-emerald-600', 'cursor-pointer');
+                                        playIncomingSound();
+                                    } else {
+                                        isGpsVerified = false;
+                                        statusBadge.innerText = "❌ Too Far (" + Math.round(distanceMeters) + "m away)";
+                                        statusBadge.className = "text-xs bg-red-500 text-white px-3 py-1 rounded-full font-bold";
+                                        statusText.innerText = `⚠️ You are ${Math.round(distanceMeters)} meters away from the venue (${targetLocationQuery}). You must be within 100 meters to unlock the QR scanner.`;
+                                    }
+                                } else {
+                                    statusText.innerText = "❌ Could not resolve venue coordinates for geofencing.";
+                                    statusBadge.className = "text-xs bg-red-500 text-white px-3 py-1 rounded-full font-bold";
+                                }
+                            });
+                    });
+                },
+                (error) => {
+                    statusText.innerText = "❌ GPS acquisition failed. Please enable location permissions.";
+                    statusBadge.innerText = "⚠️ GPS Error";
+                    statusBadge.className = "text-xs bg-red-500 text-white px-3 py-1 rounded-full font-bold";
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
         // Firebase Sync Listener
         db.ref('vitapa_data').on('value', (snapshot) => {
             const data = snapshot.val();
@@ -536,7 +654,7 @@
                                 <strong>👤 ${att.workerName}</strong> marked attendance<br>
                                 <span class="text-xs text-slate-500">⏰ Check-In: ${att.timestamp} | Hash: <span class="font-mono">${att.hashKey}</span></span>
                             </div>
-                            <span class="text-xs bg-emerald-200 text-emerald-900 px-2 py-1 rounded font-bold">Verified ✓</span>
+                            <span class="text-xs bg-emerald-200 text-emerald-900 px-2 py-1 rounded font-bold">Verified (GPS + QR) ✓</span>
                         `;
                         adminAttendanceList.appendChild(aItem);
                     });
@@ -567,7 +685,6 @@
             document.getElementById('attendance-qr-modal').classList.remove('hidden');
             generateRollingQRCode();
             
-            // Refresh QR code every 10 seconds to prevent duplication or screenshot fraud
             if (qrTimerInterval) clearInterval(qrTimerInterval);
             qrTimerInterval = setInterval(generateRollingQRCode, 10000);
         }
@@ -582,7 +699,6 @@
             const container = document.getElementById('qrcode-container');
             container.innerHTML = '';
 
-            // Generate time window hash valid for current 10-second block
             const timeBlock = Math.floor(Date.now() / 10000);
             const securePayload = `VITAPA_SECURE_ATTENDANCE_${timeBlock}`;
 
@@ -597,7 +713,6 @@
                 correctLevel: QRCode.CorrectLevel.H
             });
 
-            // Countdown timer display
             let timeLeft = 10;
             document.getElementById('qr-countdown').innerText = timeLeft;
             if (countdownInterval) clearInterval(countdownInterval);
@@ -611,13 +726,10 @@
 
         // --- WORKER SCANNER SYSTEM ---
         function openScannerModal() {
-            const workerName = document.getElementById('worker-name-input').value.trim();
-            if (!workerName) {
-                alert("Please enter your name first before scanning!");
-                document.getElementById('worker-name-input').focus();
+            if (!isGpsVerified) {
+                alert("You must verify your GPS arrival location first!");
                 return;
             }
-            localStorage.setItem('vitapa_worker_name', workerName);
 
             document.getElementById('scanner-modal').classList.remove('hidden');
             const resultBox = document.getElementById('scan-result-box');
@@ -648,13 +760,11 @@
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            // Validate anti-cheat secure payload format
             if (decodedText.startsWith("VITAPA_SECURE_ATTENDANCE_")) {
                 const parts = decodedText.split("_");
                 const qrTimeBlock = parseInt(parts[3]);
                 const currentTimeBlock = Math.floor(Date.now() / 10000);
 
-                // Allow 1 block tolerance (10 seconds) for network latency
                 if (Math.abs(currentTimeBlock - qrTimeBlock) <= 1) {
                     if (html5QrCode && html5QrCode.isScanning) {
                         html5QrCode.stop();
@@ -672,13 +782,12 @@
                         const data = snapshot.val() || { jobs: [], bookings: [], attendance: [] };
                         if (!data.attendance) data.attendance = [];
                         
-                        // Check if already checked in for this block
                         const alreadyChecked = data.attendance.some(a => a.workerName === workerName && a.hashKey === attendanceData.hashKey);
                         if (!alreadyChecked) {
                             data.attendance.unshift(attendanceData);
                             db.ref('vitapa_data').set(data).then(() => {
                                 playIncomingSound();
-                                showScanResult(true, `✅ SUCCESS! Attendance marked for ${workerName} at ${attendanceData.timestamp}`);
+                                showScanResult(true, `✅ SUCCESS! Verified Attendance marked for ${workerName} at ${attendanceData.timestamp}`);
                             });
                         } else {
                             showScanResult(true, `ℹ️ Attendance already recorded for this session.`);
@@ -796,7 +905,7 @@
             document.getElementById('admin-dashboard').classList.add('hidden');
             document.getElementById('marketplace-section').classList.add('hidden');
             document.getElementById('marketplace-section').classList.remove('hidden');
-            document.getElementById('user-role-badge').innerText = 'Marketplace & Scanner View';
+            document.getElementById('user-role-badge').innerText = 'Marketplace & Verification View';
         }
 
         function postJob() {
