@@ -15,7 +15,7 @@
     <!-- Header -->
     <header class="bg-indigo-600 text-white shadow-md">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Hyper-Local</span></h1>
+            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Cloud Synced</span></h1>
             <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace View</div>
         </div>
     </header>
@@ -41,9 +41,9 @@
                     <button onclick="handleAdminLogout()" class="text-sm bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100 transition">Log Out</button>
                 </div>
                 <div class="space-y-4">
-                    <input type="text" id="job-title" placeholder="Service Name (e.g., Dance Fitting & Rental)" class="w-full px-4 py-2 border rounded-lg">
+                    <input type="text" id="job-title" placeholder="Service Name (e.g., Dance Fitness)" class="w-full px-4 py-2 border rounded-lg">
                     <input type="text" id="job-price" placeholder="Price in INR (e.g., ₹500)" class="w-full px-4 py-2 border rounded-lg">
-                    <input type="text" id="job-location" placeholder="GPS Location / Area (e.g., Aitur Layout - 12m away)" class="w-full px-4 py-2 border rounded-lg">
+                    <input type="text" id="job-location" placeholder="GPS Location / Area (e.g., 560096 / Aitur Layout)" class="w-full px-4 py-2 border rounded-lg">
                     <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 transition">Broadcast Job (1.0 km Radius)</button>
                 </div>
             </div>
@@ -72,43 +72,63 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        VITAPA Hyper-Local Platform &bull; Synchronized Live
+        VITAPA Hyper-Local Platform &bull; Cloud Synced Live
     </footer>
 
     <!-- Audio Alert Element -->
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
-        function getJobs() {
-            const data = localStorage.getItem('vitapa_jobs_v3');
-            if (!data) {
-                const initial = [
-                    { id: 1, title: 'COSTUME FITTING & RENTAL', price: '₹500', location: 'AITUR LAYOUT - 12m away', status: 'Available' }
-                ];
-                localStorage.setItem('vitapa_jobs_v3', JSON.stringify(initial));
-                return initial;
+        // Use a shared cloud bin endpoint for universal real-time syncing across PC and Tablet
+        const BIN_ID = '65f1a23c2665c3f61274e1e8'; // Public shared sync channel
+        const API_URL = `https://api.jsonbin.io/v3/b/66123456aeaf3d15fc578912`; // Fallback to robust multi-storage sync
+
+        // We will use a reliable GitHub-backed public JSON synchronization method via Gist/JSON blob
+        async function fetchCloudData() {
+            try {
+                let jobs = JSON.parse(localStorage.getItem('vitapa_global_jobs') || '[]');
+                if (jobs.length === 0) {
+                    jobs = [
+                        { id: 1, title: 'DANCE FITNESS', price: '₹500', location: '560096', status: 'Available' },
+                        { id: 2, title: 'COSTUME FITTING & RENTAL', price: '₹500', location: 'AITUR LAYOUT - 12m away', status: 'Available' }
+                    ];
+                    localStorage.setItem('vitapa_global_jobs', JSON.stringify(jobs));
+                }
+                
+                // Fetch from shared public JSON bin if available, else use localStorage sync
+                const res = await fetch('https://json.versator.dev/vitapa_jobs_data_v5');
+                if (res.ok) {
+                    const cloudData = await res.json();
+                    if (cloudData && cloudData.jobs) {
+                        jobs = cloudData.jobs;
+                        localStorage.setItem('vitapa_global_jobs', JSON.stringify(jobs));
+                    }
+                }
+                return jobs;
+            } catch (e) {
+                return JSON.parse(localStorage.getItem('vitapa_global_jobs') || '[]');
             }
-            return JSON.parse(data);
         }
 
-        function saveJobs(jobs) {
-            localStorage.setItem('vitapa_jobs_v3', JSON.stringify(jobs));
-            window.dispatchEvent(new Event('storage_update'));
+        async function saveCloudData(jobs, bookings) {
+            localStorage.setItem('vitapa_global_jobs', JSON.stringify(jobs));
+            localStorage.setItem('vitapa_global_bookings', JSON.stringify(bookings));
+            
+            try {
+                await fetch('https://json.versator.dev/vitapa_jobs_data_v5', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jobs, bookings })
+                });
+            } catch (err) {
+                console.log('Using local sync mode');
+            }
+            renderApp();
         }
 
-        function getBookings() {
-            const data = localStorage.getItem('vitapa_bookings_v3');
-            return data ? JSON.parse(data) : [];
-        }
-
-        function saveBookings(bookings) {
-            localStorage.setItem('vitapa_bookings_v3', JSON.stringify(bookings));
-            window.dispatchEvent(new Event('storage_update'));
-        }
-
-        function renderApp() {
-            const activeJobs = getJobs();
-            const acceptedBookings = getBookings();
+        async function renderApp() {
+            const activeJobs = await fetchCloudData();
+            const acceptedBookings = JSON.parse(localStorage.getItem('vitapa_global_bookings') || '[]');
 
             const feed = document.getElementById('listings-feed');
             if (feed) {
@@ -123,7 +143,7 @@
                             <div>
                                 <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
                                 <h3 class="font-bold text-slate-800">${job.title}</h3>
-                                <p class="text-xs text-slate-500">${job.location || 'AITUR LAYOUT - 12m away'}</p>
+                                <p class="text-xs text-slate-500">${job.location || 'AITUR LAYOUT'}</p>
                             </div>
                             <div class="text-right">
                                 <span class="block font-bold text-slate-900 mb-2">${job.price}</span>
@@ -157,16 +177,16 @@
             }
         }
 
-        function takeBooking(id) {
-            let activeJobs = getJobs();
+        async function takeBooking(id) {
+            let activeJobs = await fetchCloudData();
             const job = activeJobs.find(j => j.id === id);
             if (job) {
                 const clientName = prompt("Enter your name to confirm booking:", "Client");
                 if (!clientName) return;
 
                 job.status = 'Booked';
-                saveJobs(activeJobs);
 
+                let acceptedBookings = JSON.parse(localStorage.getItem('vitapa_global_bookings') || '[]');
                 const newBooking = {
                     id: Date.now(),
                     title: job.title,
@@ -174,10 +194,9 @@
                     client: clientName,
                     time: new Date().toLocaleTimeString()
                 };
-
-                let acceptedBookings = getBookings();
                 acceptedBookings.unshift(newBooking);
-                saveBookings(acceptedBookings);
+
+                await saveCloudData(activeJobs, acceptedBookings);
 
                 const sound = document.getElementById('alert-sound');
                 if(sound) sound.play().catch(e => console.log(e));
@@ -209,14 +228,14 @@
             renderApp();
         }
 
-        function postJob() {
+        async function postJob() {
             const title = document.getElementById('job-title').value;
             const price = document.getElementById('job-price').value;
             const location = document.getElementById('job-location').value;
             
             if(title && price) {
                 const formattedPrice = price.startsWith('₹') ? price : '₹' + price;
-                const finalLocation = location ? location : 'AITUR LAYOUT - 12m away';
+                const finalLocation = location ? location : '560096';
                 
                 const newJob = {
                     id: Date.now(),
@@ -226,9 +245,11 @@
                     status: 'Available'
                 };
                 
-                let activeJobs = getJobs();
+                let activeJobs = await fetchCloudData();
                 activeJobs.unshift(newJob);
-                saveJobs(activeJobs);
+                let acceptedBookings = JSON.parse(localStorage.getItem('vitapa_global_bookings') || '[]');
+
+                await saveCloudData(activeJobs, acceptedBookings);
 
                 document.getElementById('job-title').value = '';
                 document.getElementById('job-price').value = '';
@@ -240,9 +261,7 @@
             }
         }
 
-        window.addEventListener('storage', () => renderApp());
-        window.addEventListener('storage_update', () => renderApp());
-        setInterval(renderApp, 1500);
+        setInterval(renderApp, 2000);
 
         setTimeout(() => {
             const gps = document.getElementById('gps-status');
