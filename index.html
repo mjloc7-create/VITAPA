@@ -98,7 +98,7 @@
         <div id="marketplace-section" class="space-y-4">
             <div class="flex justify-between items-center mb-2">
                 <h2 class="text-xl font-bold text-slate-800">Nearby Services (Live Feed)</h2>
-                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium">Live Feed Synced</span>
+                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium animate-pulse">🔴 Live Sound Alerts Active</span>
             </div>
             <div id="listings-feed" class="space-y-4">
                 <!-- Dynamic items will load here -->
@@ -184,12 +184,12 @@
         const db = firebase.database();
 
         let lastCancellationId = null;
+        let lastJobCount = null;
         let searchTimeout = null;
         let leafletMap = null;
         let draggableMarker = null;
         let selectedMapAddress = "MG Road, Bengaluru";
 
-        // Load saved address from localStorage on startup
         window.addEventListener('load', () => {
             const savedAddr = localStorage.getItem('vitapa_default_location');
             if (savedAddr) {
@@ -209,7 +209,6 @@
             }
         }
 
-        // Option 1: Live Address Search & Type
         function searchLiveMaps(query) {
             const dropdown = document.getElementById('live-map-results');
             const statusText = document.getElementById('location-status');
@@ -248,12 +247,11 @@
             }, 400);
         }
 
-        // Option 2: Drag and Set on Map Modal
         function openMapPickerModal() {
             document.getElementById('map-modal').classList.remove('hidden');
             setTimeout(() => {
                 if (!leafletMap) {
-                    leafletMap = L.map('map').setView([12.9716, 77.5946], 13); // Bengaluru Center
+                    leafletMap = L.map('map').setView([12.9716, 77.5946], 13);
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19,
                         attribution: '© OpenStreetMap'
@@ -305,7 +303,6 @@
             document.getElementById('map-modal').classList.add('hidden');
         }
 
-        // Option 3: Pin Current Location (GPS)
         function captureAdminGPS() {
             const statusText = document.getElementById('location-status');
             statusText.innerText = "Acquiring exact satellite GPS pin...";
@@ -341,7 +338,15 @@
         db.ref('vitapa_data').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                renderApp(data.jobs || [], data.bookings || []);
+                const currentJobs = data.jobs || [];
+                
+                // Play audio sound alert if a new job has been added
+                if (lastJobCount !== null && currentJobs.length > lastJobCount) {
+                    playIncomingSound();
+                }
+                lastJobCount = currentJobs.length;
+
+                renderApp(currentJobs, data.bookings || []);
                 
                 if (data.lastCancellation && data.lastCancellation.id !== lastCancellationId) {
                     lastCancellationId = data.lastCancellation.id;
@@ -358,6 +363,14 @@
                 db.ref('vitapa_data').set(initialData);
             }
         });
+
+        function playIncomingSound() {
+            const sound = document.getElementById('alert-sound');
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log("Audio play blocked by browser policy until interaction", e));
+            }
+        }
 
         function renderApp(activeJobs, acceptedBookings) {
             const feed = document.getElementById('listings-feed');
@@ -455,10 +468,7 @@
         }
 
         function triggerCancellationAlert(jobTitle) {
-            const sound = document.getElementById('alert-sound');
-            if(sound) {
-                sound.play().catch(e => console.log(e));
-            }
+            playIncomingSound();
             document.getElementById('cancelled-job-title').innerText = jobTitle;
             document.getElementById('cancellation-modal').classList.remove('hidden');
         }
@@ -490,9 +500,7 @@
                     data.bookings.unshift(newBooking);
 
                     db.ref('vitapa_data').set(data).then(() => {
-                        const sound = document.getElementById('alert-sound');
-                        if(sound) sound.play().catch(e => console.log(e));
-
+                        playIncomingSound();
                         document.getElementById('modal-job-location').innerText = job.location;
                         document.getElementById('modal-maps-link').href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location)}`;
                         document.getElementById('location-modal').classList.remove('hidden');
@@ -551,7 +559,7 @@
                     db.ref('vitapa_data').set(data).then(() => {
                         document.getElementById('job-title').value = '';
                         document.getElementById('job-price').value = '';
-                        alert('Job broadcasted live with location!');
+                        alert('Job broadcasted live with sound notification!');
                     });
                 });
             } else {
