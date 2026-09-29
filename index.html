@@ -25,22 +25,70 @@
     <!-- Header -->
     <header class="bg-indigo-600 text-white shadow-md">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Geofenced Attendance</span></h1>
-            <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace & Verification View</div>
+            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Secure Attendance</span></h1>
+            <div class="flex items-center gap-3">
+                <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Guest View</div>
+                <button onclick="showRoleSelection()" class="text-xs bg-white text-indigo-600 px-3 py-1 rounded-full font-bold hover:bg-indigo-50 transition shadow-sm">Switch Role / Login</button>
+            </div>
         </div>
     </header>
 
     <!-- Main Container -->
     <main class="max-w-4xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
 
-        <!-- Admin Login Section -->
-        <div id="admin-auth-section" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h2 class="text-lg font-semibold mb-3 text-slate-700">Admin Portal Access</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="email" id="admin-email" placeholder="Admin Email" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <input type="password" id="admin-password" placeholder="Password" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <!-- Role Selection / Portal Choice Screen -->
+        <div id="role-selection-section" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center space-y-6 max-w-xl mx-auto mt-6">
+            <div class="space-y-2">
+                <h2 class="text-2xl font-bold text-slate-800">Welcome to VITAPA</h2>
+                <p class="text-sm text-slate-500">Please choose your portal to continue with secure attendance and service booking:</p>
             </div>
-            <button onclick="handleAdminLogin()" class="mt-4 w-full md:w-auto bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">Log in to Admin Dashboard</button>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <button onclick="selectPortal('worker')" class="p-6 rounded-xl border-2 border-indigo-100 hover:border-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 transition text-left space-y-2 group shadow-sm">
+                    <div class="text-2xl">👷</div>
+                    <h3 class="font-bold text-indigo-900 group-hover:text-indigo-600 text-base">Worker / User Portal</h3>
+                    <p class="text-xs text-slate-600">Log in to view live jobs, verify GPS within 200m radius, and scan shift QR codes.</p>
+                </button>
+
+                <button onclick="selectPortal('admin')" class="p-6 rounded-xl border-2 border-slate-200 hover:border-slate-800 bg-slate-50 hover:bg-slate-100 transition text-left space-y-2 group shadow-sm">
+                    <div class="text-2xl">🛡️</div>
+                    <h3 class="font-bold text-slate-900 text-base">Admin Portal</h3>
+                    <p class="text-xs text-slate-600">Post new services with reporting & disbursal times, venue locations, and monitor shift attendance.</p>
+                </button>
+            </div>
+        </div>
+
+        <!-- Worker Login Section -->
+        <div id="worker-login-section" class="hidden bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-md mx-auto space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h2 class="text-lg font-semibold text-indigo-600 flex items-center gap-2"><span>👷</span> Worker Login</h2>
+                <button onclick="showRoleSelection()" class="text-xs text-slate-400 hover:text-slate-600 font-bold">&larr; Back</button>
+            </div>
+            <p class="text-xs text-slate-600">Enter your details to sign into your worker account and access 200m geofenced attendance:</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Full Name</label>
+                    <input type="text" id="login-worker-name" placeholder="e.g., Rajesh Kumar" class="w-full px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mobile Phone Number</label>
+                    <input type="tel" id="login-worker-phone" placeholder="e.g., 9876543210" class="w-full px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+            </div>
+            <button onclick="handleWorkerLogin()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition shadow-md text-sm">Log In as Worker</button>
+        </div>
+
+        <!-- Admin Login Section -->
+        <div id="admin-auth-section" class="hidden bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-md mx-auto space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h2 class="text-lg font-semibold text-slate-700 flex items-center gap-2"><span>🛡️</span> Admin Portal Access</h2>
+                <button onclick="showRoleSelection()" class="text-xs text-slate-400 hover:text-slate-600 font-bold">&larr; Back</button>
+            </div>
+            <div class="space-y-3">
+                <input type="email" id="admin-email" placeholder="Admin Email" class="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="password" id="admin-password" placeholder="Password" class="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <button onclick="handleAdminLogin()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition text-sm shadow-md">Log in to Admin Dashboard</button>
         </div>
 
         <!-- Dedicated Admin Dashboard View -->
@@ -51,24 +99,28 @@
                     <button onclick="handleAdminLogout()" class="text-sm bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100 transition">Log Out</button>
                 </div>
                 <div class="space-y-4">
-                    <input type="text" id="job-title" placeholder="Service Name (e.g., Dance Fitness)" class="w-full px-4 py-2 border rounded-lg">
+                    <input type="text" id="job-title" placeholder="Service Name (e.g., Event Security / Dance Fitness)" class="w-full px-4 py-2 border rounded-lg">
                     <input type="text" id="job-price" placeholder="Price in INR (e.g., ₹500)" class="w-full px-4 py-2 border rounded-lg">
                     
-                    <!-- Schedule / Date & Time Inputs -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <!-- Schedule / Date & Shift Timings -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <div>
-                            <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">📅 Work Needed Date</label>
+                            <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">📅 Work Date</label>
                             <input type="date" id="job-date" class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">⏰ Work Needed Time</label>
-                            <input type="time" id="job-time" class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                            <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">🟢 Reporting Time</label>
+                            <input type="time" id="job-reporting-time" value="09:00" class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">🔴 Disbursal Time</label>
+                            <input type="time" id="job-disbursal-time" value="18:00" class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
                         </div>
                     </div>
 
                     <!-- Location Setting Options Section -->
                     <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide">📍 Choose Location Setting Method</label>
+                        <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide">📍 Choose Location Setting Method (200m Geofence)</label>
                         <div class="space-y-1">
                             <div class="flex gap-2">
                                 <input type="text" id="job-location" placeholder="Type full address (Saved automatically)..." class="flex-1 px-3 py-2 border rounded-lg text-sm bg-white" oninput="searchLiveMaps(this.value)">
@@ -81,10 +133,10 @@
                             <button onclick="openMapPickerModal()" class="flex-1 bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-amber-700 transition shadow-sm">🗺️ Drag and Set on Map</button>
                             <button onclick="captureAdminGPS()" class="flex-1 bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-emerald-700 transition shadow-sm">📍 Pin Current Location</button>
                         </div>
-                        <p id="location-status" class="text-xs text-slate-500 italic">Address will be remembered automatically for future postings.</p>
+                        <p id="location-status" class="text-xs text-slate-500 italic">Address & 200m boundary will be enforced automatically for attendance.</p>
                     </div>
 
-                    <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition shadow-md">Broadcast Job Live with Schedule & Venue</button>
+                    <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition shadow-md">Broadcast Job Live with Reporting & Disbursal Times</button>
                 </div>
             </div>
 
@@ -102,7 +154,7 @@
                     <h2 class="text-lg font-semibold text-slate-700">🔒 Secure Live Attendance Dashboard</h2>
                     <button onclick="openAttendanceQRModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow-sm">📱 Open Live Anti-Cheat Attendance QR</button>
                 </div>
-                <p class="text-xs text-slate-500 mb-3">Display the live rolling QR code on your tablet/screen at the venue. Workers must verify GPS location first, then scan it.</p>
+                <p class="text-xs text-slate-500 mb-3">Workers must verify GPS within 200m of venue and scan during reporting/disbursal window.</p>
                 <div id="admin-attendance-list" class="space-y-3">
                     <p class="text-sm text-slate-400 italic">No attendance marked yet today.</p>
                 </div>
@@ -117,31 +169,31 @@
             </div>
         </div>
 
-        <!-- Marketplace Feed & Geofenced Attendance Panel (For Workers) -->
-        <div id="marketplace-section" class="space-y-6">
-            <!-- Worker Attendance Gate Box -->
+        <!-- Marketplace Feed & Geofenced Attendance Panel (For Logged-in Workers) -->
+        <div id="marketplace-section" class="hidden space-y-6">
+            <!-- Worker Profile & Attendance Gate Box -->
             <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white p-6 rounded-2xl shadow-md space-y-4">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h2 class="text-xl font-bold">Worker Attendance Gate</h2>
-                        <p class="text-xs text-indigo-200 mt-1">Step 1: Arrive at location & verify GPS. Step 2: Unlock scanner & scan venue QR.</p>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs bg-indigo-500 px-2.5 py-0.5 rounded-full uppercase font-bold tracking-wider">Logged In</span>
+                            <h2 id="worker-display-name" class="text-xl font-bold">-</h2>
+                        </div>
+                        <p class="text-xs text-indigo-200 mt-1">Step 1: Arrive within 200m & verify GPS. Step 2: Unlock scanner & scan venue QR code.</p>
                     </div>
-                    <div class="w-full md:w-auto">
-                        <label class="block text-xs font-semibold text-indigo-200 mb-1">Your Full Name:</label>
-                        <input type="text" id="worker-name-input" placeholder="Enter Your Name..." class="w-full md:w-48 px-3 py-2 rounded-lg text-slate-900 text-sm font-medium focus:outline-none">
-                    </div>
+                    <button onclick="handleWorkerLogout()" class="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition font-medium">Log Out</button>
                 </div>
 
                 <div class="bg-indigo-900 bg-opacity-50 p-4 rounded-xl border border-indigo-500/30 space-y-3">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold uppercase tracking-wider text-indigo-200">🛡️ Geofence Verification Status</span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-indigo-200">🛡️ Geofence Verification Status (200m Radius)</span>
                         <span id="geofence-badge" class="text-xs bg-amber-500 text-white px-3 py-1 rounded-full font-bold">⚠️ GPS Not Verified</span>
                     </div>
-                    <p id="geofence-status-text" class="text-xs text-indigo-100">Tap below when you reach the venue location to verify your coordinates (must be within 100 meters).</p>
+                    <p id="geofence-status-text" class="text-xs text-indigo-100">Tap below when you reach the venue location to verify your coordinates within 200 meters.</p>
                     
                     <div class="flex flex-wrap gap-3 pt-1">
                         <button onclick="verifyWorkerGPS()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-bold transition shadow-md text-xs flex items-center justify-center gap-2">
-                            <span>📍</span> 1. Verify My Arrival GPS
+                            <span>📍</span> 1. Verify 200m Arrival GPS
                         </button>
                         <button id="open-scanner-btn" disabled onclick="openScannerModal()" class="flex-1 bg-slate-400 cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-bold transition shadow-md text-xs flex items-center justify-center gap-2 opacity-60">
                             <span>📷</span> 2. Open QR Scanner (Locked)
@@ -151,7 +203,7 @@
             </div>
 
             <div class="flex justify-between items-center mb-2">
-                <h2 class="text-xl font-bold text-slate-800">Nearby Services (Live Feed)</h2>
+                <h2 class="text-xl font-bold text-slate-800">Nearby Services & Shift Schedules (Live Feed)</h2>
                 <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium animate-pulse">🔴 Live Sound Alerts Active</span>
             </div>
             <div id="listings-feed" class="space-y-4">
@@ -163,10 +215,10 @@
         <div id="attendance-qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
             <div class="bg-white p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 text-center border border-slate-100">
                 <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="text-base font-bold text-indigo-600 flex items-center gap-2"><span>🛡️</span> Venue Attendance QR (Anti-Cheat)</h3>
+                    <h3 class="text-base font-bold text-indigo-600 flex items-center gap-2"><span>🛡️</span> Venue Shift Attendance QR</h3>
                     <button onclick="closeAttendanceQRModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
                 </div>
-                <p class="text-xs text-slate-600">This QR code automatically scrambles and refreshes every 10 seconds. Screenshots or old codes will fail!</p>
+                <p class="text-xs text-slate-600">This QR code automatically scrambles and refreshes every 10 seconds for secure check-in/disbursal validation.</p>
                 
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center">
                     <div id="qrcode-container" class="bg-white p-3 rounded-lg shadow-sm"></div>
@@ -191,7 +243,7 @@
                     <h3 class="text-base font-bold text-emerald-600 flex items-center gap-2"><span>📷</span> Scan Venue QR Code</h3>
                     <button onclick="closeScannerModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
                 </div>
-                <p class="text-xs text-slate-600">GPS verified successfully! Point your camera at the admin's live refreshing venue QR code.</p>
+                <p class="text-xs text-slate-600">200m GPS verified successfully! Point your camera at the admin's live refreshing venue QR code.</p>
 
                 <div id="reader" class="w-full overflow-hidden rounded-xl border border-slate-200"></div>
 
@@ -229,7 +281,7 @@
                 </div>
                 <p class="text-sm text-slate-600">You have successfully accepted this service job. Tap below to start navigation:</p>
                 <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 space-y-1">
-                    <p class="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Exact Job Venue / Address</p>
+                    <p class="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Exact Job Venue & Shift Timings</p>
                     <p id="modal-job-location" class="font-bold text-slate-900 text-base break-all">-</p>
                 </div>
                 <div class="space-y-2 pt-2">
@@ -291,6 +343,7 @@
         let countdownInterval = null;
         let html5QrCode = null;
         let isGpsVerified = false;
+        let currentLoggedInWorker = null;
 
         window.addEventListener('load', () => {
             const savedAddr = localStorage.getItem('vitapa_default_location');
@@ -303,11 +356,60 @@
             const dateInput = document.getElementById('job-date');
             if(dateInput && !dateInput.value) dateInput.value = todayStr;
 
-            const savedWorkerName = localStorage.getItem('vitapa_worker_name');
-            if(savedWorkerName) {
-                document.getElementById('worker-name-input').value = savedWorkerName;
+            const savedWorker = localStorage.getItem('vitapa_logged_worker');
+            if (savedWorker) {
+                currentLoggedInWorker = JSON.parse(savedWorker);
+                document.getElementById('worker-display-name').innerText = currentLoggedInWorker.name;
+                document.getElementById('role-selection-section').classList.add('hidden');
+                document.getElementById('marketplace-section').classList.remove('hidden');
+                document.getElementById('user-role-badge').innerText = 'Worker Portal Active';
             }
         });
+
+        function showRoleSelection() {
+            document.getElementById('role-selection-section').classList.remove('hidden');
+            document.getElementById('worker-login-section').classList.add('hidden');
+            document.getElementById('admin-auth-section').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.add('hidden');
+            document.getElementById('marketplace-section').classList.add('hidden');
+            document.getElementById('user-role-badge').innerText = 'Guest View';
+        }
+
+        function selectPortal(role) {
+            document.getElementById('role-selection-section').classList.add('hidden');
+            if (role === 'worker') {
+                document.getElementById('worker-login-section').classList.remove('hidden');
+                document.getElementById('user-role-badge').innerText = 'Worker Login';
+            } else if (role === 'admin') {
+                document.getElementById('admin-auth-section').classList.remove('hidden');
+                document.getElementById('user-role-badge').innerText = 'Admin Login';
+            }
+        }
+
+        function handleWorkerLogin() {
+            const name = document.getElementById('login-worker-name').value.trim();
+            const phone = document.getElementById('login-worker-phone').value.trim();
+
+            if (!name || !phone) {
+                alert("Please enter both your name and phone number.");
+                return;
+            }
+
+            currentLoggedInWorker = { name, phone };
+            localStorage.setItem('vitapa_logged_worker', JSON.stringify(currentLoggedInWorker));
+
+            document.getElementById('worker-login-section').classList.add('hidden');
+            document.getElementById('marketplace-section').classList.remove('hidden');
+            document.getElementById('worker-display-name').innerText = name;
+            document.getElementById('user-role-badge').innerText = 'Worker Portal Active';
+            playIncomingSound();
+        }
+
+        function handleWorkerLogout() {
+            localStorage.removeItem('vitapa_logged_worker');
+            currentLoggedInWorker = null;
+            showRoleSelection();
+        }
 
         function saveAddressPermanently() {
             const addr = document.getElementById('job-location').value;
@@ -446,9 +548,8 @@
             }
         }
 
-        // Calculate distance between two lat/lng points in meters (Haversine formula)
         function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Radius of the earth in meters
+            const R = 6371000;
             const dLat = deg2rad(lat2 - lat1);
             const dLon = deg2rad(lon2 - lon1);
             const a =
@@ -463,19 +564,16 @@
             return deg * (Math.PI / 180);
         }
 
-        // --- WORKER GEOFENCE GPS VERIFICATION ---
+        // --- WORKER GEOFENCE GPS VERIFICATION (200 METERS RADIUS) ---
         function verifyWorkerGPS() {
-            const workerName = document.getElementById('worker-name-input').value.trim();
-            if (!workerName) {
-                alert("Please enter your name first!");
-                document.getElementById('worker-name-input').focus();
+            if (!currentLoggedInWorker) {
+                alert("Please log in first!");
                 return;
             }
-            localStorage.setItem('vitapa_worker_name', workerName);
 
             const statusBadge = document.getElementById('geofence-badge');
             const statusText = document.getElementById('geofence-status-text');
-            statusText.innerText = "🛰️ Acquiring your current GPS coordinates to verify venue distance...";
+            statusText.innerText = "🛰️ Acquiring your current GPS coordinates to verify within 200m radius...";
             statusBadge.innerText = "⏳ Checking GPS...";
             statusBadge.className = "text-xs bg-indigo-500 text-white px-3 py-1 rounded-full font-bold";
 
@@ -489,7 +587,6 @@
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
 
-                    // Fetch active job location coordinates
                     db.ref('vitapa_data/jobs').once('value').then((snapshot) => {
                         const jobs = snapshot.val() || [];
                         if (jobs.length === 0) {
@@ -499,10 +596,8 @@
                             return;
                         }
 
-                        // Take the most recent active job location or user selected job
                         const targetLocationQuery = jobs[0].location;
 
-                        // Geocode target location using Nominatim
                         fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(targetLocationQuery)}&limit=1`)
                             .then(res => res.json())
                             .then(geoData => {
@@ -512,12 +607,11 @@
 
                                     const distanceMeters = getDistanceFromLatLonInMeters(userLat, userLng, targetLat, targetLng);
 
-                                    // Allow within 100 meters geofence radius
-                                    if (distanceMeters <= 100) {
+                                    if (distanceMeters <= 200) {
                                         isGpsVerified = true;
-                                        statusBadge.innerText = "✅ GPS Verified (Within " + Math.round(distanceMeters) + "m)";
+                                        statusBadge.innerText = "✅ GPS Verified (" + Math.round(distanceMeters) + "m / 200m)";
                                         statusBadge.className = "text-xs bg-emerald-500 text-white px-3 py-1 rounded-full font-bold";
-                                        statusText.innerText = "🎉 Location matched successfully! Step 2 is now unlocked.";
+                                        statusText.innerText = "🎉 Location matched within 200m radius! Step 2 is now unlocked.";
 
                                         const scannerBtn = document.getElementById('open-scanner-btn');
                                         scannerBtn.disabled = false;
@@ -528,7 +622,7 @@
                                         isGpsVerified = false;
                                         statusBadge.innerText = "❌ Too Far (" + Math.round(distanceMeters) + "m away)";
                                         statusBadge.className = "text-xs bg-red-500 text-white px-3 py-1 rounded-full font-bold";
-                                        statusText.innerText = `⚠️ You are ${Math.round(distanceMeters)} meters away from the venue (${targetLocationQuery}). You must be within 100 meters to unlock the QR scanner.`;
+                                        statusText.innerText = `⚠️ You are ${Math.round(distanceMeters)} meters away from the venue. You must be within the 200-meter radius to unlock the QR scanner.`;
                                     }
                                 } else {
                                     statusText.innerText = "❌ Could not resolve venue coordinates for geofencing.";
@@ -566,7 +660,7 @@
             } else {
                 const initialData = {
                     jobs: [
-                        { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: 'Attur Layout, Yelahanka, Bengaluru', date: '2026-03-30', time: '10:00', status: 'Available' }
+                        { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: 'Attur Layout, Yelahanka, Bengaluru', date: '2026-03-30', reportingTime: '09:00', disbursalTime: '18:00', status: 'Available' }
                     ],
                     bookings: [],
                     attendance: [],
@@ -593,14 +687,14 @@
                 } else {
                     activeJobs.forEach(job => {
                         const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location)}`;
-                        const scheduleText = (job.date || job.time) ? `📅 ${job.date || 'Today'} @ ${job.time || 'ASAP'}` : '📅 Immediate / ASAP';
+                        const scheduleText = `📅 ${job.date || 'Today'} | 🟢 Report: ${job.reportingTime || '09:00'} | 🔴 Disburse: ${job.disbursalTime || '18:00'}`;
                         const item = document.createElement('div');
                         item.className = 'bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center';
                         item.innerHTML = `
                             <div>
-                                <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
+                                <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE & SHIFT SCHEDULE (200M GEOFENCE)</p>
                                 <h3 class="font-bold text-slate-800">${job.title}</h3>
-                                <p class="text-xs text-amber-700 font-medium mt-0.5">${scheduleText}</p>
+                                <p class="text-xs text-amber-700 font-semibold mt-0.5">${scheduleText}</p>
                                 <a href="${mapsUrl}" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold mt-1 hover:underline bg-indigo-50 px-2 py-1 rounded">
                                     🚀 ${job.location || 'Start Navigation'}
                                 </a>
@@ -625,7 +719,7 @@
                 } else {
                     adminJobsList.innerHTML = '';
                     activeJobs.forEach(job => {
-                        const schedStr = (job.date || job.time) ? ` | 📅 ${job.date || ''} ${job.time || ''}` : '';
+                        const schedStr = ` | 📅 ${job.date || ''} (Report: ${job.reportingTime || ''} - Disburse: ${job.disbursalTime || ''})`;
                         const jItem = document.createElement('div');
                         jItem.className = 'p-3 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center text-sm';
                         jItem.innerHTML = `
@@ -651,10 +745,10 @@
                         aItem.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center text-sm';
                         aItem.innerHTML = `
                             <div>
-                                <strong>👤 ${att.workerName}</strong> marked attendance<br>
-                                <span class="text-xs text-slate-500">⏰ Check-In: ${att.timestamp} | Hash: <span class="font-mono">${att.hashKey}</span></span>
+                                <strong>👤 ${att.workerName}</strong> (${att.phone || 'Verified'}) marked attendance<br>
+                                <span class="text-xs text-slate-500">⏰ Time: ${att.timestamp} | Hash: <span class="font-mono">${att.hashKey}</span></span>
                             </div>
-                            <span class="text-xs bg-emerald-200 text-emerald-900 px-2 py-1 rounded font-bold">Verified (GPS + QR) ✓</span>
+                            <span class="text-xs bg-emerald-200 text-emerald-900 px-2 py-1 rounded font-bold">200m GPS + QR Verified ✓</span>
                         `;
                         adminAttendanceList.appendChild(aItem);
                     });
@@ -671,7 +765,7 @@
                         const bItem = document.createElement('div');
                         bItem.className = 'p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex justify-between items-center text-sm';
                         bItem.innerHTML = `
-                            <div><strong>${b.title}</strong> (${b.price}) booked by <strong>${b.client}</strong><br><span class="text-xs text-slate-500">📍 ${b.location} | Scheduled: ${b.date || 'N/A'} ${b.time || ''}</span></div>
+                            <div><strong>${b.title}</strong> (${b.price}) booked by <strong>${b.client}</strong><br><span class="text-xs text-slate-500">📍 ${b.location} | Shift: ${b.reportingTime || ''} to ${b.disbursalTime || ''}</span></div>
                             <span class="text-xs text-indigo-700 font-semibold">${b.acceptedAt}</span>
                         `;
                         adminList.appendChild(bItem);
@@ -727,7 +821,7 @@
         // --- WORKER SCANNER SYSTEM ---
         function openScannerModal() {
             if (!isGpsVerified) {
-                alert("You must verify your GPS arrival location first!");
+                alert("You must verify your 200m GPS arrival location first!");
                 return;
             }
 
@@ -770,10 +864,13 @@
                         html5QrCode.stop();
                     }
 
-                    const workerName = document.getElementById('worker-name-input').value.trim();
+                    const workerName = currentLoggedInWorker ? currentLoggedInWorker.name : "Worker";
+                    const workerPhone = currentLoggedInWorker ? currentLoggedInWorker.phone : "";
+                    
                     const attendanceData = {
                         id: Date.now(),
                         workerName: workerName,
+                        phone: workerPhone,
                         timestamp: new Date().toLocaleTimeString(),
                         hashKey: `BLOCK-${qrTimeBlock}`
                     };
@@ -787,7 +884,7 @@
                             data.attendance.unshift(attendanceData);
                             db.ref('vitapa_data').set(data).then(() => {
                                 playIncomingSound();
-                                showScanResult(true, `✅ SUCCESS! Verified Attendance marked for ${workerName} at ${attendanceData.timestamp}`);
+                                showScanResult(true, `✅ SUCCESS! Verified 200m Attendance marked for ${workerName} at ${attendanceData.timestamp}`);
                             });
                         } else {
                             showScanResult(true, `ℹ️ Attendance already recorded for this session.`);
@@ -850,23 +947,26 @@
         }
 
         async function takeBooking(id) {
+            if (!currentLoggedInWorker) {
+                alert("Please log in as a worker to take bookings!");
+                return;
+            }
+
             db.ref('vitapa_data').once('value').then((snapshot) => {
                 const data = snapshot.val() || { jobs: [], bookings: [] };
                 const job = data.jobs.find(j => j.id === id);
                 if (job) {
-                    const clientName = prompt("Enter your name to confirm booking:", "Worker");
-                    if (!clientName) return;
-
                     job.status = 'Booked';
 
                     const newBooking = {
                         id: Date.now(),
                         title: job.title,
                         price: job.price,
-                        client: clientName,
+                        client: currentLoggedInWorker.name,
                         location: job.location,
                         date: job.date,
-                        time: job.time,
+                        reportingTime: job.reportingTime,
+                        disbursalTime: job.disbursalTime,
                         acceptedAt: new Date().toLocaleTimeString()
                     };
 
@@ -875,7 +975,7 @@
 
                     db.ref('vitapa_data').set(data).then(() => {
                         playIncomingSound();
-                        document.getElementById('modal-job-location').innerText = `${job.location} (Scheduled: ${job.date || 'Today'} @ ${job.time || 'ASAP'})`;
+                        document.getElementById('modal-job-location').innerText = `${job.location}\n📅 Date: ${job.date || 'Today'} | 🟢 Report: ${job.reportingTime} | 🔴 Disburse: ${job.disbursalTime}`;
                         document.getElementById('modal-maps-link').href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location)}`;
                         document.getElementById('location-modal').classList.remove('hidden');
                     });
@@ -893,7 +993,6 @@
             if (email && pass) {
                 document.getElementById('admin-auth-section').classList.add('hidden');
                 document.getElementById('admin-dashboard').classList.remove('hidden');
-                document.getElementById('marketplace-section').classList.add('hidden');
                 document.getElementById('user-role-badge').innerText = 'Admin Dashboard Active';
             } else {
                 alert('Please enter admin credentials.');
@@ -901,11 +1000,7 @@
         }
 
         function handleAdminLogout() {
-            document.getElementById('admin-auth-section').classList.remove('hidden');
-            document.getElementById('admin-dashboard').classList.add('hidden');
-            document.getElementById('marketplace-section').classList.add('hidden');
-            document.getElementById('marketplace-section').classList.remove('hidden');
-            document.getElementById('user-role-badge').innerText = 'Marketplace & Verification View';
+            showRoleSelection();
         }
 
         function postJob() {
@@ -913,7 +1008,8 @@
             const price = document.getElementById('job-price').value;
             const location = document.getElementById('job-location').value;
             const date = document.getElementById('job-date').value;
-            const time = document.getElementById('job-time').value;
+            const reportingTime = document.getElementById('job-reporting-time').value;
+            const disbursalTime = document.getElementById('job-disbursal-time').value;
             
             if(title && price) {
                 const formattedPrice = price.startsWith('₹') ? price : '₹' + price;
@@ -925,7 +1021,8 @@
                     price: formattedPrice,
                     location: finalLocation,
                     date: date || '',
-                    time: time || '',
+                    reportingTime: reportingTime || '09:00',
+                    disbursalTime: disbursalTime || '18:00',
                     status: 'Available'
                 };
                 
@@ -937,7 +1034,7 @@
                     db.ref('vitapa_data').set(data).then(() => {
                         document.getElementById('job-title').value = '';
                         document.getElementById('job-price').value = '';
-                        alert('Job broadcasted live with schedule and sound alert!');
+                        alert('Job broadcasted live with reporting/disbursal times & 200m geofence!');
                     });
                 });
             } else {
