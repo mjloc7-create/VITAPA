@@ -140,9 +140,10 @@
                 </div>
             </div>
 
-            <!-- Active Jobs Management & Deletion Section -->
+            <!-- Active Jobs Management & Per-Job QR Codes Section -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-semibold text-slate-700 mb-3">Manage Active Job Postings</h2>
+                <h2 class="text-lg font-semibold text-slate-700 mb-2">Manage Active Job Postings & Per-Job Attendance QR</h2>
+                <p class="text-xs text-slate-500 mb-3">Each posted job features its own secure anti-cheat attendance QR code for venue check-in.</p>
                 <div id="admin-active-jobs-list" class="space-y-3">
                     <p class="text-sm text-slate-400 italic">Loading active jobs...</p>
                 </div>
@@ -150,11 +151,8 @@
 
             <!-- Live Attendance Verification Dashboard -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 class="text-lg font-semibold text-slate-700">🔒 Secure Live Attendance Dashboard</h2>
-                    <button onclick="openAttendanceQRModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow-sm">📱 Open Live Anti-Cheat Attendance QR</button>
-                </div>
-                <p class="text-xs text-slate-500 mb-3">Workers must verify GPS within 200m of venue and scan during reporting/disbursal window.</p>
+                <h2 class="text-lg font-semibold text-slate-700 mb-3">🔒 Secure Live Attendance Logs</h2>
+                <p class="text-xs text-slate-500 mb-3">Workers must verify GPS within 200m of venue and scan the respective job QR code.</p>
                 <div id="admin-attendance-list" class="space-y-3">
                     <p class="text-sm text-slate-400 italic">No attendance marked yet today.</p>
                 </div>
@@ -211,13 +209,14 @@
             </div>
         </div>
 
-        <!-- Anti-Cheat Rolling QR Display Modal (For Venue Display) -->
+        <!-- Per-Job Rolling QR Display Modal -->
         <div id="attendance-qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
             <div class="bg-white p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 text-center border border-slate-100">
                 <div class="flex justify-between items-center border-b pb-3">
-                    <h3 class="text-base font-bold text-indigo-600 flex items-center gap-2"><span>🛡️</span> Venue Shift Attendance QR</h3>
+                    <h3 class="text-base font-bold text-indigo-600 flex items-center gap-2"><span>🛡️</span> Shift Attendance QR</h3>
                     <button onclick="closeAttendanceQRModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
                 </div>
+                <div class="bg-indigo-50 p-2 rounded-lg text-xs font-bold text-indigo-900" id="modal-job-title-display">-</div>
                 <p class="text-xs text-slate-600">This QR code automatically scrambles and refreshes every 10 seconds for secure check-in/disbursal validation.</p>
                 
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center">
@@ -228,11 +227,11 @@
                     </div>
                 </div>
 
-                <div class="bg-indigo-50 p-3 rounded-lg text-xs text-indigo-800 font-medium">
+                <div class="bg-slate-100 p-2.5 rounded-lg text-xs text-slate-700 font-medium">
                     Current Venue Hash Key: <span id="current-qr-hash" class="font-mono font-bold">-</span>
                 </div>
                 
-                <button onclick="closeAttendanceQRModal()" class="w-full bg-slate-100 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-200 transition text-sm">Close Display</button>
+                <button onclick="closeAttendanceQRModal()" class="w-full bg-slate-200 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-300 transition text-sm">Close Display</button>
             </div>
         </div>
 
@@ -243,7 +242,7 @@
                     <h3 class="text-base font-bold text-emerald-600 flex items-center gap-2"><span>📷</span> Scan Venue QR Code</h3>
                     <button onclick="closeScannerModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
                 </div>
-                <p class="text-xs text-slate-600">200m GPS verified successfully! Point your camera at the admin's live refreshing venue QR code.</p>
+                <p class="text-xs text-slate-600">200m GPS verified successfully! Point your camera at the admin's live refreshing venue QR code for this job.</p>
 
                 <div id="reader" class="w-full overflow-hidden rounded-xl border border-slate-200"></div>
 
@@ -291,7 +290,7 @@
             </div>
         </div>
 
-        <!-- Emergency Cancellation Alert Modal for Tablets/Workers -->
+        <!-- Emergency Cancellation Alert Modal -->
         <div id="cancellation-modal" class="hidden fixed inset-0 bg-red-950 bg-opacity-80 flex items-center justify-center p-4 z-50 animate-pulse">
             <div class="bg-white p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 border-4 border-red-500">
                 <div class="flex justify-between items-center border-b pb-3">
@@ -344,6 +343,7 @@
         let html5QrCode = null;
         let isGpsVerified = false;
         let currentLoggedInWorker = null;
+        let activeJobForQR = null;
 
         window.addEventListener('load', () => {
             const savedAddr = localStorage.getItem('vitapa_default_location');
@@ -725,9 +725,12 @@
                         jItem.innerHTML = `
                             <div>
                                 <strong>${job.title}</strong> (${job.price})<br>
-                                <span class="text-xs text-slate-500">📍 ${job.location}${schedStr} | Status: <span class="font-semibold text-indigo-600">${job.status}</span></span>
+                                <span class="text-xs text-slate-500">📍 ${job.location}${schedStr}</span>
                             </div>
-                            <button onclick="deleteJob(${job.id})" class="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700 transition shadow-sm">🗑️ Delete Job</button>
+                            <div class="flex items-center gap-2">
+                                <button onclick='openJobQRModal(${JSON.stringify(job)})' class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-700 transition shadow-sm flex items-center gap-1">📱 View QR</button>
+                                <button onclick="deleteJob(${job.id})" class="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700 transition shadow-sm">🗑️ Delete</button>
+                            </div>
                         `;
                         adminJobsList.appendChild(jItem);
                     });
@@ -745,7 +748,7 @@
                         aItem.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center text-sm';
                         aItem.innerHTML = `
                             <div>
-                                <strong>👤 ${att.workerName}</strong> (${att.phone || 'Verified'}) marked attendance<br>
+                                <strong>👤 ${att.workerName}</strong> (${att.phone || 'Verified'}) marked attendance for <span class="text-indigo-700 font-semibold">${att.jobTitle || 'Job'}</span><br>
                                 <span class="text-xs text-slate-500">⏰ Time: ${att.timestamp} | Hash: <span class="font-mono">${att.hashKey}</span></span>
                             </div>
                             <span class="text-xs bg-emerald-200 text-emerald-900 px-2 py-1 rounded font-bold">200m GPS + QR Verified ✓</span>
@@ -774,8 +777,10 @@
             }
         }
 
-        // --- ANTI-CHEAT ROLLING QR CODE SYSTEM ---
-        function openAttendanceQRModal() {
+        // --- PER-JOB ROLLING QR CODE SYSTEM ---
+        function openJobQRModal(job) {
+            activeJobForQR = job;
+            document.getElementById('modal-job-title-display').innerText = `${job.title} - ${job.price} (${job.location})`;
             document.getElementById('attendance-qr-modal').classList.remove('hidden');
             generateRollingQRCode();
             
@@ -790,13 +795,14 @@
         }
 
         function generateRollingQRCode() {
+            if (!activeJobForQR) return;
             const container = document.getElementById('qrcode-container');
             container.innerHTML = '';
 
             const timeBlock = Math.floor(Date.now() / 10000);
-            const securePayload = `VITAPA_SECURE_ATTENDANCE_${timeBlock}`;
+            const securePayload = `VITAPA_JOB_${activeJobForQR.id}_HASH_${timeBlock}`;
 
-            document.getElementById('current-qr-hash').innerText = `BLOCK-${timeBlock}`;
+            document.getElementById('current-qr-hash').innerText = `JOB-${activeJobForQR.id}-BLOCK-${timeBlock}`;
 
             qrCodeObj = new QRCode(container, {
                 text: securePayload,
@@ -854,9 +860,10 @@
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            if (decodedText.startsWith("VITAPA_SECURE_ATTENDANCE_")) {
+            if (decodedText.startsWith("VITAPA_JOB_")) {
                 const parts = decodedText.split("_");
-                const qrTimeBlock = parseInt(parts[3]);
+                const scannedJobId = parseInt(parts[2]);
+                const qrTimeBlock = parseInt(parts[4]);
                 const currentTimeBlock = Math.floor(Date.now() / 10000);
 
                 if (Math.abs(currentTimeBlock - qrTimeBlock) <= 1) {
@@ -864,19 +871,24 @@
                         html5QrCode.stop();
                     }
 
-                    const workerName = currentLoggedInWorker ? currentLoggedInWorker.name : "Worker";
-                    const workerPhone = currentLoggedInWorker ? currentLoggedInWorker.phone : "";
-                    
-                    const attendanceData = {
-                        id: Date.now(),
-                        workerName: workerName,
-                        phone: workerPhone,
-                        timestamp: new Date().toLocaleTimeString(),
-                        hashKey: `BLOCK-${qrTimeBlock}`
-                    };
-
                     db.ref('vitapa_data').once('value').then((snapshot) => {
                         const data = snapshot.val() || { jobs: [], bookings: [], attendance: [] };
+                        const matchedJob = (data.jobs || []).find(j => j.id === scannedJobId);
+                        const jobTitleStr = matchedJob ? matchedJob.title : "Service Job";
+
+                        const workerName = currentLoggedInWorker ? currentLoggedInWorker.name : "Worker";
+                        const workerPhone = currentLoggedInWorker ? currentLoggedInWorker.phone : "";
+                        
+                        const attendanceData = {
+                            id: Date.now(),
+                            jobId: scannedJobId,
+                            jobTitle: jobTitleStr,
+                            workerName: workerName,
+                            phone: workerPhone,
+                            timestamp: new Date().toLocaleTimeString(),
+                            hashKey: `JOB-${scannedJobId}-BLOCK-${qrTimeBlock}`
+                        };
+
                         if (!data.attendance) data.attendance = [];
                         
                         const alreadyChecked = data.attendance.some(a => a.workerName === workerName && a.hashKey === attendanceData.hashKey);
@@ -884,17 +896,17 @@
                             data.attendance.unshift(attendanceData);
                             db.ref('vitapa_data').set(data).then(() => {
                                 playIncomingSound();
-                                showScanResult(true, `✅ SUCCESS! Verified 200m Attendance marked for ${workerName} at ${attendanceData.timestamp}`);
+                                showScanResult(true, `✅ SUCCESS! Attendance marked for ${jobTitleStr} (${workerName}) at ${attendanceData.timestamp}`);
                             });
                         } else {
-                            showScanResult(true, `ℹ️ Attendance already recorded for this session.`);
+                            showScanResult(true, `ℹ️ Attendance already recorded for this shift session.`);
                         }
                     });
                 } else {
-                    showScanResult(false, `❌ EXPIRED QR CODE! This code is old or from a screenshot. Please scan the currently refreshing live QR code.`);
+                    showScanResult(false, `❌ EXPIRED QR CODE! This code has refreshed. Please scan the currently active code.`);
                 }
             } else {
-                showScanResult(false, `❌ INVALID QR CODE! Not a valid VITAPA venue code.`);
+                showScanResult(false, `❌ INVALID QR CODE! Not a valid VITAPA job QR code.`);
             }
         }
 
@@ -1034,7 +1046,7 @@
                     db.ref('vitapa_data').set(data).then(() => {
                         document.getElementById('job-title').value = '';
                         document.getElementById('job-price').value = '';
-                        alert('Job broadcasted live with reporting/disbursal times & 200m geofence!');
+                        alert('Job broadcasted live with per-job QR code & 200m geofence!');
                     });
                 });
             } else {
