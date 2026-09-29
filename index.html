@@ -73,7 +73,7 @@
         <div id="marketplace-section" class="space-y-4">
             <div class="flex justify-between items-center mb-2">
                 <h2 class="text-xl font-bold text-slate-800">Nearby Services (Live Feed)</h2>
-                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium">Tap Location to Open Maps</span>
+                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium">Tap Location for Turn-by-Turn Navigation</span>
             </div>
             <div id="listings-feed" class="space-y-4">
                 <!-- Dynamic items will load here -->
@@ -87,13 +87,13 @@
                     <h3 class="text-lg font-bold text-emerald-600 flex items-center gap-2"><span>🎯</span> Booking Confirmed!</h3>
                     <button onclick="closeLocationModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
                 </div>
-                <p class="text-sm text-slate-600">You have successfully accepted this service job. Tap below to open directions:</p>
+                <p class="text-sm text-slate-600">You have successfully accepted this service job. Tap below to start navigation:</p>
                 <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 space-y-1">
                     <p class="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Exact Job GPS Pin / Address</p>
                     <p id="modal-job-location" class="font-bold text-slate-900 text-base break-all">-</p>
                 </div>
                 <div class="space-y-2 pt-2">
-                    <a id="modal-maps-link" href="#" target="_blank" class="block w-full text-center bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition text-base shadow-md">🗺️ Open Google Maps Navigation</a>
+                    <a id="modal-maps-link" href="#" target="_blank" class="block w-full text-center bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition text-base shadow-md">🚀 Start GPS Navigation</a>
                     <button onclick="closeLocationModal()" class="block w-full text-center bg-slate-100 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-200 transition text-sm">Close / Done</button>
                 </div>
             </div>
@@ -147,7 +147,8 @@
                     feed.innerHTML = '<p class="text-slate-500 text-sm">No active listings available.</p>';
                 } else {
                     activeJobs.forEach(job => {
-                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
+                        // Use Google Maps directions endpoint so it opens straight into navigation mode
+                        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location)}`;
                         const item = document.createElement('div');
                         item.className = 'bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center';
                         item.innerHTML = `
@@ -155,7 +156,7 @@
                                 <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
                                 <h3 class="font-bold text-slate-800">${job.title}</h3>
                                 <a href="${mapsUrl}" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold mt-1 hover:underline bg-indigo-50 px-2 py-1 rounded">
-                                    📍 ${job.location || 'Open Map'} (Tap to Open Map)
+                                    🚀 ${job.location || 'Start Navigation'} (Start Navigating)
                                 </a>
                             </div>
                             <div class="text-right">
@@ -243,7 +244,8 @@
                         if(sound) sound.play().catch(e => console.log(e));
 
                         document.getElementById('modal-job-location').innerText = job.location;
-                        document.getElementById('modal-maps-link').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
+                        // Set directions URL for the confirmation modal button as well
+                        document.getElementById('modal-maps-link').href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location)}`;
                         document.getElementById('location-modal').classList.remove('hidden');
                     });
                 }
@@ -276,7 +278,7 @@
 
         function postJob() {
             const title = document.getElementById('job-title').value;
-            const price = document.getElementById('job-price <- update">job-price').value;
+            const price = document.getElementById('job-price').value;
             const location = document.getElementById('job-location').value;
             
             if(title && price) {
