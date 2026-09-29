@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VITAPA - Hyper-Local Marketplace</title>
+    <title>VITAPA - Hyper-Local Marketplace & Secure Attendance</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -11,6 +11,9 @@
     <!-- Leaflet Map CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- QRCode Generator & Scanner Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -22,16 +25,16 @@
     <!-- Header -->
     <header class="bg-indigo-600 text-white shadow-md">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Cloud Live</span></h1>
-            <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace View</div>
+            <h1 class="text-xl font-bold tracking-tight">VITAPA <span class="text-xs bg-indigo-500 py-1 px-2 rounded-full uppercase">Secure Attendance</span></h1>
+            <div id="user-role-badge" class="text-xs bg-indigo-700 px-3 py-1 rounded-full font-medium">Marketplace & Scanner View</div>
         </div>
     </header>
 
     <!-- Main Container -->
-    <main class="max-w-4xl mx-auto px-4 py-6 flex-grow w-full">
+    <main class="max-w-4xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
 
         <!-- Admin Login Section -->
-        <div id="admin-auth-section" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
+        <div id="admin-auth-section" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <h2 class="text-lg font-semibold mb-3 text-slate-700">Admin Portal Access</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input type="email" id="admin-email" placeholder="Admin Email" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -63,11 +66,9 @@
                         </div>
                     </div>
 
-                    <!-- 3 Location Setting Options Section -->
+                    <!-- Location Setting Options Section -->
                     <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide">📍 Choose Location Setting Method</label>
-                        
-                        <!-- Option 1: Type & Auto-Save -->
                         <div class="space-y-1">
                             <div class="flex gap-2">
                                 <input type="text" id="job-location" placeholder="Type full address (Saved automatically)..." class="flex-1 px-3 py-2 border rounded-lg text-sm bg-white" oninput="searchLiveMaps(this.value)">
@@ -76,12 +77,10 @@
                             <div id="live-map-results" class="hidden bg-white border border-slate-300 rounded-lg shadow-md max-h-36 overflow-y-auto space-y-1 p-1"></div>
                         </div>
 
-                        <!-- Option 2 & 3 Action Buttons -->
                         <div class="flex flex-wrap gap-2 pt-1">
                             <button onclick="openMapPickerModal()" class="flex-1 bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-amber-700 transition shadow-sm">🗺️ Drag and Set on Map</button>
                             <button onclick="captureAdminGPS()" class="flex-1 bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-emerald-700 transition shadow-sm">📍 Pin Current Location</button>
                         </div>
-
                         <p id="location-status" class="text-xs text-slate-500 italic">Address will be remembered automatically for future postings.</p>
                     </div>
 
@@ -97,23 +96,91 @@
                 </div>
             </div>
 
-            <!-- Live Incoming Bookings Tracker -->
+            <!-- Live Attendance Verification Dashboard -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-lg font-semibold text-slate-700">🔒 Secure Live Attendance Dashboard</h2>
+                    <button onclick="openAttendanceQRModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow-sm">📱 Open Live Anti-Cheat Attendance QR</button>
+                </div>
+                <p class="text-xs text-slate-500 mb-3">Display the live rolling QR code on your tablet/screen at the venue. Workers scan it to record verified attendance.</p>
+                <div id="admin-attendance-list" class="space-y-3">
+                    <p class="text-sm text-slate-400 italic">No attendance marked yet today.</p>
+                </div>
+            </div>
+
+            <!-- Live Accepted Bookings Tracker -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h2 class="text-lg font-semibold text-slate-700 mb-3">Live Accepted Bookings Tracker</h2>
                 <div id="admin-bookings-list" class="space-y-3">
-                    <p class="text-sm text-slate-400 italic">No bookings accepted yet. Waiting for client actions...</p>
+                    <p class="text-sm text-slate-400 italic">No bookings accepted yet...</p>
                 </div>
             </div>
         </div>
 
-        <!-- Marketplace Feed (For Clients / Tablets) -->
-        <div id="marketplace-section" class="space-y-4">
+        <!-- Marketplace Feed (For Workers / Tablets) -->
+        <div id="marketplace-section" class="space-y-6">
+            <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold">Worker Attendance Scanner</h2>
+                    <p class="text-xs text-indigo-200 mt-1">Arrived at the job location? Scan the admin's rolling venue QR code to check in securely.</p>
+                </div>
+                <button onclick="openScannerModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg text-sm flex items-center gap-2 whitespace-nowrap">
+                    <span>📷</span> Open QR Scanner
+                </button>
+            </div>
+
             <div class="flex justify-between items-center mb-2">
                 <h2 class="text-xl font-bold text-slate-800">Nearby Services (Live Feed)</h2>
                 <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium animate-pulse">🔴 Live Sound Alerts Active</span>
             </div>
             <div id="listings-feed" class="space-y-4">
                 <!-- Dynamic items will load here -->
+            </div>
+        </div>
+
+        <!-- Anti-Cheat Rolling QR Display Modal (For Venue Display) -->
+        <div id="attendance-qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 text-center border border-slate-100">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-base font-bold text-indigo-600 flex items-center gap-2"><span>🛡️</span> Venue Attendance QR (Anti-Cheat)</h3>
+                    <button onclick="closeAttendanceQRModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
+                </div>
+                <p class="text-xs text-slate-600">This QR code automatically scrambles and refreshes every 10 seconds. Screenshots or old codes will fail!</p>
+                
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center">
+                    <div id="qrcode-container" class="bg-white p-3 rounded-lg shadow-sm"></div>
+                    <div class="mt-3 flex items-center gap-2 text-xs font-semibold text-emerald-600">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                        Refreshing in <span id="qr-countdown">10</span>s
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50 p-3 rounded-lg text-xs text-indigo-800 font-medium">
+                    Current Venue Hash Key: <span id="current-qr-hash" class="font-mono font-bold">-</span>
+                </div>
+                
+                <button onclick="closeAttendanceQRModal()" class="w-full bg-slate-100 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-200 transition text-sm">Close Display</button>
+            </div>
+        </div>
+
+        <!-- Worker Camera QR Scanner Modal -->
+        <div id="scanner-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 border border-slate-100">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-base font-bold text-emerald-600 flex items-center gap-2"><span>📷</span> Scan Venue QR Code</h3>
+                    <button onclick="closeScannerModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
+                </div>
+                <p class="text-xs text-slate-600">Point your camera at the admin's live refreshing venue QR code.</p>
+                
+                <div class="space-y-2">
+                    <input type="text" id="worker-name-input" placeholder="Enter Your Full Name..." class="w-full px-3 py-2 border rounded-lg text-sm font-medium">
+                </div>
+
+                <div id="reader" class="w-full overflow-hidden rounded-xl border border-slate-200"></div>
+
+                <div id="scan-result-box" class="hidden p-3 rounded-xl text-xs font-bold text-center"></div>
+
+                <button onclick="closeScannerModal()" class="w-full bg-slate-100 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-200 transition text-sm">Cancel / Close</button>
             </div>
         </div>
 
@@ -174,7 +241,7 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        VITAPA Hyper-Local Platform &bull; Firebase Real-Time Cloud
+        VITAPA Hyper-Local Platform &bull; Secure Anti-Cheat Attendance Cloud
     </footer>
 
     <!-- Audio Alert Element -->
@@ -201,6 +268,11 @@
         let leafletMap = null;
         let draggableMarker = null;
         let selectedMapAddress = "MG Road, Bengaluru";
+        
+        let qrCodeObj = null;
+        let qrTimerInterval = null;
+        let countdownInterval = null;
+        let html5QrCode = null;
 
         window.addEventListener('load', () => {
             const savedAddr = localStorage.getItem('vitapa_default_location');
@@ -209,10 +281,14 @@
                 document.getElementById('location-status').innerText = "✅ Loaded your saved default address.";
             }
 
-            // Default date picker to today
             const todayStr = new Date().toISOString().split('T')[0];
             const dateInput = document.getElementById('job-date');
             if(dateInput && !dateInput.value) dateInput.value = todayStr;
+
+            const savedWorkerName = localStorage.getItem('vitapa_worker_name');
+            if(savedWorkerName) {
+                document.getElementById('worker-name-input').value = savedWorkerName;
+            }
         });
 
         function saveAddressPermanently() {
@@ -352,6 +428,7 @@
             }
         }
 
+        // Firebase Sync Listener
         db.ref('vitapa_data').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -362,7 +439,7 @@
                 }
                 lastJobCount = currentJobs.length;
 
-                renderApp(currentJobs, data.bookings || []);
+                renderApp(currentJobs, data.bookings || [], data.attendance || []);
                 
                 if (data.lastCancellation && data.lastCancellation.id !== lastCancellationId) {
                     lastCancellationId = data.lastCancellation.id;
@@ -374,6 +451,7 @@
                         { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: 'Attur Layout, Yelahanka, Bengaluru', date: '2026-03-30', time: '10:00', status: 'Available' }
                     ],
                     bookings: [],
+                    attendance: [],
                     lastCancellation: null
                 };
                 db.ref('vitapa_data').set(initialData);
@@ -388,7 +466,7 @@
             }
         }
 
-        function renderApp(activeJobs, acceptedBookings) {
+        function renderApp(activeJobs, acceptedBookings, attendanceRecords) {
             const feed = document.getElementById('listings-feed');
             if (feed) {
                 feed.innerHTML = '';
@@ -444,6 +522,27 @@
                 }
             }
 
+            const adminAttendanceList = document.getElementById('admin-attendance-list');
+            if (adminAttendanceList) {
+                if (attendanceRecords.length === 0) {
+                    adminAttendanceList.innerHTML = '<p class="text-sm text-slate-400 italic">No attendance marked yet today.</p>';
+                } else {
+                    adminAttendanceList.innerHTML = '';
+                    attendanceRecords.forEach(att => {
+                        const aItem = document.createElement('div');
+                        aItem.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center text-sm';
+                        aItem.innerHTML = `
+                            <div>
+                                <strong>👤 ${att.workerName}</strong> marked attendance<br>
+                                <span class="text-xs text-slate-500">⏰ Check-In: ${att.timestamp} | Hash: <span class="font-mono">${att.hashKey}</span></span>
+                            </div>
+                            <span class="text-xs bg-emerald-200 text-emerald-900 px-2 py-1 rounded font-bold">Verified ✓</span>
+                        `;
+                        adminAttendanceList.appendChild(aItem);
+                    });
+                }
+            }
+
             const adminList = document.getElementById('admin-bookings-list');
             if (adminList) {
                 if (acceptedBookings.length === 0) {
@@ -452,15 +551,160 @@
                     adminList.innerHTML = '';
                     acceptedBookings.forEach(b => {
                         const bItem = document.createElement('div');
-                        bItem.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center text-sm';
+                        bItem.className = 'p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex justify-between items-center text-sm';
                         bItem.innerHTML = `
                             <div><strong>${b.title}</strong> (${b.price}) booked by <strong>${b.client}</strong><br><span class="text-xs text-slate-500">📍 ${b.location} | Scheduled: ${b.date || 'N/A'} ${b.time || ''}</span></div>
-                            <span class="text-xs text-emerald-700 font-semibold">${b.acceptedAt}</span>
+                            <span class="text-xs text-indigo-700 font-semibold">${b.acceptedAt}</span>
                         `;
                         adminList.appendChild(bItem);
                     });
                 }
             }
+        }
+
+        // --- ANTI-CHEAT ROLLING QR CODE SYSTEM ---
+        function openAttendanceQRModal() {
+            document.getElementById('attendance-qr-modal').classList.remove('hidden');
+            generateRollingQRCode();
+            
+            // Refresh QR code every 10 seconds to prevent duplication or screenshot fraud
+            if (qrTimerInterval) clearInterval(qrTimerInterval);
+            qrTimerInterval = setInterval(generateRollingQRCode, 10000);
+        }
+
+        function closeAttendanceQRModal() {
+            document.getElementById('attendance-qr-modal').classList.add('hidden');
+            if (qrTimerInterval) clearInterval(qrTimerInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+        }
+
+        function generateRollingQRCode() {
+            const container = document.getElementById('qrcode-container');
+            container.innerHTML = '';
+
+            // Generate time window hash valid for current 10-second block
+            const timeBlock = Math.floor(Date.now() / 10000);
+            const securePayload = `VITAPA_SECURE_ATTENDANCE_${timeBlock}`;
+
+            document.getElementById('current-qr-hash').innerText = `BLOCK-${timeBlock}`;
+
+            qrCodeObj = new QRCode(container, {
+                text: securePayload,
+                width: 200,
+                height: 200,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Countdown timer display
+            let timeLeft = 10;
+            document.getElementById('qr-countdown').innerText = timeLeft;
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft >= 0) {
+                    document.getElementById('qr-countdown').innerText = timeLeft;
+                }
+            }, 1000);
+        }
+
+        // --- WORKER SCANNER SYSTEM ---
+        function openScannerModal() {
+            const workerName = document.getElementById('worker-name-input').value.trim();
+            if (!workerName) {
+                alert("Please enter your name first before scanning!");
+                document.getElementById('worker-name-input').focus();
+                return;
+            }
+            localStorage.setItem('vitapa_worker_name', workerName);
+
+            document.getElementById('scanner-modal').classList.remove('hidden');
+            const resultBox = document.getElementById('scan-result-box');
+            resultBox.classList.add('hidden');
+            resultBox.innerText = '';
+
+            setTimeout(() => {
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode("reader");
+                }
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    onScanSuccess,
+                    onScanFailure
+                ).catch(err => {
+                    console.error("Camera start error", err);
+                    alert("Unable to access camera. Please allow camera permissions.");
+                });
+            }, 300);
+        }
+
+        function closeScannerModal() {
+            document.getElementById('scanner-modal').classList.add('hidden');
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(err => console.log("Camera stop err", err));
+            }
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Validate anti-cheat secure payload format
+            if (decodedText.startsWith("VITAPA_SECURE_ATTENDANCE_")) {
+                const parts = decodedText.split("_");
+                const qrTimeBlock = parseInt(parts[3]);
+                const currentTimeBlock = Math.floor(Date.now() / 10000);
+
+                // Allow 1 block tolerance (10 seconds) for network latency
+                if (Math.abs(currentTimeBlock - qrTimeBlock) <= 1) {
+                    if (html5QrCode && html5QrCode.isScanning) {
+                        html5QrCode.stop();
+                    }
+
+                    const workerName = document.getElementById('worker-name-input').value.trim();
+                    const attendanceData = {
+                        id: Date.now(),
+                        workerName: workerName,
+                        timestamp: new Date().toLocaleTimeString(),
+                        hashKey: `BLOCK-${qrTimeBlock}`
+                    };
+
+                    db.ref('vitapa_data').once('value').then((snapshot) => {
+                        const data = snapshot.val() || { jobs: [], bookings: [], attendance: [] };
+                        if (!data.attendance) data.attendance = [];
+                        
+                        // Check if already checked in for this block
+                        const alreadyChecked = data.attendance.some(a => a.workerName === workerName && a.hashKey === attendanceData.hashKey);
+                        if (!alreadyChecked) {
+                            data.attendance.unshift(attendanceData);
+                            db.ref('vitapa_data').set(data).then(() => {
+                                playIncomingSound();
+                                showScanResult(true, `✅ SUCCESS! Attendance marked for ${workerName} at ${attendanceData.timestamp}`);
+                            });
+                        } else {
+                            showScanResult(true, `ℹ️ Attendance already recorded for this session.`);
+                        }
+                    });
+                } else {
+                    showScanResult(false, `❌ EXPIRED QR CODE! This code is old or from a screenshot. Please scan the currently refreshing live QR code.`);
+                }
+            } else {
+                showScanResult(false, `❌ INVALID QR CODE! Not a valid VITAPA venue code.`);
+            }
+        }
+
+        function onScanFailure(error) {
+            // Scanning in progress silently
+        }
+
+        function showScanResult(isSuccess, message) {
+            const box = document.getElementById('scan-result-box');
+            box.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'bg-red-100', 'text-red-800');
+            if (isSuccess) {
+                box.classList.add('bg-emerald-100', 'text-emerald-800');
+            } else {
+                box.classList.add('bg-red-100', 'text-red-800');
+            }
+            box.innerText = message;
         }
 
         function deleteJob(jobId) {
@@ -552,7 +796,7 @@
             document.getElementById('admin-dashboard').classList.add('hidden');
             document.getElementById('marketplace-section').classList.add('hidden');
             document.getElementById('marketplace-section').classList.remove('hidden');
-            document.getElementById('user-role-badge').innerText = 'Marketplace View';
+            document.getElementById('user-role-badge').innerText = 'Marketplace & Scanner View';
         }
 
         function postJob() {
@@ -577,7 +821,7 @@
                 };
                 
                 db.ref('vitapa_data').once('value').then((snapshot) => {
-                    const data = snapshot.val() || { jobs: [], bookings: [] };
+                    const data = snapshot.val() || { jobs: [], bookings: [], attendance: [] };
                     if (!data.jobs) data.jobs = [];
                     data.jobs.unshift(newJob);
 
