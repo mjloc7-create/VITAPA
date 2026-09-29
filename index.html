@@ -3,66 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VITAPA - Secure Attendance & Worker Portal</title>
+    <title>VITAPA - Secure Attendance & Portal Selection</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-indigo-950 text-slate-100 font-sans p-4">
-    <div id="app-container" class="max-w-4xl mx-auto space-y-4">
-        <!-- Header -->
-        <header class="flex justify-between items-center bg-indigo-900 p-4 rounded-xl border border-indigo-700">
-            <h1 class="text-sm font-bold text-white">VITAPA <span class="text-[10px] bg-indigo-600 px-2 py-0.5 rounded">Worker Portal Active</span></h1>
-            <button class="bg-slate-800 text-xs px-3 py-1.5 rounded font-semibold border border-slate-700">Switch Role / Login</button>
-        </header>
-
-        <!-- Main Portal Container -->
-        <div class="bg-indigo-900/60 border border-indigo-800 p-5 rounded-2xl space-y-4">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h2 class="text-sm font-semibold text-indigo-200">LOGGED IN: <span class="text-white font-bold">sharath</span></h2>
-                    <p class="text-xs text-indigo-300 mt-1">Step 1: Verify 200m GPS. Step 2: Scan Attendance QR. Step 3: Scan Closing QR after shift completion.</p>
-                </div>
-                <div class="flex gap-2 items-center">
-                    <button onclick="switchView('portal')" id="tab-portal-btn" class="text-xs bg-indigo-600 px-3 py-1.5 rounded font-bold shadow">Portal</button>
-                    <button onclick="switchView('earnings')" id="tab-earnings-btn" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded font-bold border border-slate-700">💰 Earnings</button>
-                    <button onclick="handleLogout()" type="button" class="text-xs bg-rose-600/80 hover:bg-rose-600 px-3 py-1.5 rounded font-bold text-white transition cursor-pointer">Log Out</button>
-                </div>
+<body class="bg-indigo-950 text-slate-100 font-sans p-4 flex items-center justify-center min-h-screen">
+    <div id="app-container" class="max-w-md w-full space-y-4">
+        <!-- Role Selection / Login View -->
+        <div class="bg-indigo-900 border border-indigo-700 p-8 rounded-2xl text-center space-y-6 shadow-2xl">
+            <div>
+                <h1 class="text-xl font-bold text-white tracking-wide">VITAPA</h1>
+                <p class="text-xs text-indigo-300 mt-1">Hyper-Local Marketplace & Secure Attendance</p>
             </div>
-
-            <!-- Portal View -->
-            <div id="portal-view" class="space-y-4 pt-2">
-                <div class="bg-indigo-950 p-4 rounded-xl border border-indigo-800">
-                    <p class="text-xs font-semibold text-amber-400 mb-2">📍 GEOFENCE & SHIFT STATUS: <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded text-[10px]">GPS Not Verified</span></p>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold p-3 rounded-lg text-center">1. Verify 200m Arrival GPS</button>
-                        <button class="bg-slate-800 text-slate-400 text-xs font-bold p-3 rounded-lg text-center border border-slate-700">2. Scan Attendance QR</button>
-                        <button class="bg-slate-800 text-slate-400 text-xs font-bold p-3 rounded-lg text-center border border-slate-700">3. Scan Closing QR</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Earnings View (Hidden by default) -->
-            <div id="earnings-view" class="hidden space-y-4 pt-2">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-indigo-950 p-4 rounded-xl border border-indigo-800">
-                        <p class="text-xs text-indigo-300 uppercase font-semibold">Total Lifetime Earnings</p>
-                        <h3 id="total-earnings-display" class="text-2xl font-bold text-emerald-400 mt-1">₹0</h3>
-                    </div>
-                    <div class="bg-indigo-950 p-4 rounded-xl border border-indigo-800">
-                        <p class="text-xs text-indigo-300 uppercase font-semibold">Completed Shifts</p>
-                        <h3 id="total-completed-shifts" class="text-2xl font-bold text-indigo-400 mt-1">0</h3>
-                    </div>
-                </div>
-                <div class="bg-indigo-950 p-4 rounded-xl border border-indigo-800 space-y-3">
-                    <h3 class="font-bold text-slate-200 text-sm">Payout & Shift History</h3>
-                    <div id="earnings-history-list" class="space-y-2">
-                        <p class="text-xs text-slate-400 italic">No completed shifts recorded yet.</p>
-                    </div>
-                </div>
+            
+            <div class="space-y-3 pt-2">
+                <p class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Select Portal Role</p>
+                <button onclick="selectRole('worker')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white p-3 rounded-xl shadow transition flex items-center justify-center gap-2">
+                    <span>👷 Worker Portal</span>
+                </button>
+                <button onclick="selectRole('admin')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 p-3 rounded-xl shadow transition flex items-center justify-center gap-2">
+                    <span>🛡️ Admin Dashboard</span>
+                </button>
             </div>
         </div>
     </div>
 
     <script>
+        function selectRole(role) {
+            localStorage.setItem('vitapa_role', role);
+            if (role === 'worker') {
+                loadWorkerPortal();
+            } else {
+                loadAdminPortal();
+            }
+        }
+
+        function loadWorkerPortal() {
+            document.getElementById('app-container').innerHTML = `
+                <div class="max-w-4xl mx-auto space-y-4">
+                    <header class="flex justify-between items-center bg-indigo-900 p-4 rounded-xl border border-indigo-700">
+                        <h1 class="text-sm font-bold text-white">VITAPA <span class="text-[10px] bg-indigo-600 px-2 py-0.5 rounded">Worker Portal Active</span></h1>
+                        <button onclick="handleLogout()" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded font-semibold border border-slate-700 text-slate-200 transition">Switch Role / Login</button>
+                    </header>
+
+                    <div class="bg-indigo-900/60 border border-indigo-800 p-5 rounded-2xl space-y-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 class="text-sm font-semibold text-indigo-200">LOGGED IN: <span class="text-white font-bold">sharath</span></h2>
+                                <p class="text-xs text-indigo-300 mt-1">Step 1: Verify 200m GPS. Step 2: Scan Attendance QR. Step 3: Scan Closing QR after shift completion.</p>
+                            </div>
+                            <div class="flex gap-2 items-center">
+                                <button onclick="switchView('portal')" id="tab-portal-btn" class="text-xs bg-indigo-600 px-3 py-1.5 rounded font-bold shadow">Portal</button>
+                                <button onclick="switchView('earnings')" id="tab-earnings-btn" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded font-bold border border-slate-700">💰 Earnings</button>
+                                <button onclick="handleLogout()" type="button" class="text-xs bg-rose-600/80 hover:bg-rose-600 px-3 py-1.5 rounded font-bold text-white transition cursor-pointer">Log Out</button>
+                            </div>
+                        </div>
+
+                        <div id="portal-view" class="space-y-4 pt-2">
+                            <div class="bg-indigo-950 p-4 rounded-xl border border-indigo-800">
+                                <p class="text-xs font-semibold text-amber-400 mb-2">📍 GEOFENCE & SHIFT STATUS: <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded text-[10px]">GPS Not Verified</span></p>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold p-3 rounded-lg text-center">1. Verify 200m Arrival GPS</button>
+                                    <button class="bg-slate-800 text-slate-400 text-xs font-bold p-3 rounded-lg text-center border border-slate-700">2. Scan Attendance QR</button>
+                                    <button class="bg-slate-800 text-slate-400 text-xs font-bold p-3 rounded-lg text-center border border-slate-700">3. Scan Closing QR</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="earnings-view" class="hidden space-y-4 pt-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="bg-indigo-950 p-4 rounded-xl border border-indigo-800">
+                                    <p class="text-xs text-indigo-300 uppercase font-semibold">Total Lifetime Earnings</p>
+                                    <h3 id="total-earnings-display" class="text-2xl font-bold text-emerald-400 mt-1">₹0</h3>
+                                </div>
+                                <div class="bg-indigo-950 p-4 rounded-xl border border-indigo-800">
+                                    <p class="text-xs text-indigo-300 uppercase font-semibold">Completed Shifts</p>
+                                    <h3 id="total-completed-shifts" class="text-2xl font-bold text-indigo-400 mt-1">0</h3>
+                                </div>
+                            </div>
+                            <div class="bg-indigo-950 p-4 rounded-xl border border-indigo-800 space-y-3">
+                                <h3 class="font-bold text-slate-200 text-sm">Payout & Shift History</h3>
+                                <div id="earnings-history-list" class="space-y-2">
+                                    <p class="text-xs text-slate-400 italic">No completed shifts recorded yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadAdminPortal() {
+            document.getElementById('app-container').innerHTML = `
+                <div class="max-w-4xl mx-auto space-y-4">
+                    <header class="flex justify-between items-center bg-indigo-900 p-4 rounded-xl border border-indigo-700">
+                        <h1 class="text-sm font-bold text-white">VITAPA <span class="text-[10px] bg-rose-600 px-2 py-0.5 rounded">Admin Dashboard Active</span></h1>
+                        <button onclick="handleLogout()" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded font-semibold border border-slate-700 text-slate-200 transition">Switch Role / Login</button>
+                    </header>
+                    <div class="bg-indigo-900/60 border border-indigo-800 p-6 rounded-2xl space-y-4 text-center">
+                        <h2 class="text-base font-bold text-white">Admin Control Center</h2>
+                        <p class="text-xs text-indigo-300">Manage worker shifts, verify live geolocation tracking, and oversee regional payouts.</p>
+                        <button onclick="handleLogout()" class="bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white px-4 py-2 rounded-lg shadow">Log Out / Switch Role</button>
+                    </div>
+                </div>
+            `;
+        }
+
         function switchView(view) {
             const isPortal = view === 'portal';
             document.getElementById('portal-view').classList.toggle('hidden', !isPortal);
@@ -74,52 +119,7 @@
 
         function handleLogout() {
             localStorage.clear();
-            document.getElementById('app-container').innerHTML = `
-                <div class="bg-indigo-900 border border-indigo-700 p-8 rounded-2xl text-center space-y-4 shadow-2xl">
-                    <h2 class="text-lg font-bold text-white">VITAPA Portal - Session Ended</h2>
-                    <p class="text-xs text-indigo-300">You have been securely logged out.</p>
-                    <button onclick="window.location.reload()" class="bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white px-4 py-2 rounded-lg shadow">Return to Login</button>
-                </div>
-            `;
-        }
-
-        function renderWorkerEarnings(completedJobs = []) {
-            const earningsListEl = document.getElementById('earnings-history-list');
-            const totalEarningsEl = document.getElementById('total-earnings-display');
-            const totalShiftsEl = document.getElementById('total-completed-shifts');
-
-            if (!earningsListEl) return;
-            earningsListEl.innerHTML = '';
-
-            if (!completedJobs || completedJobs.length === 0) {
-                earningsListEl.innerHTML = '<p class="text-xs text-slate-400 italic">No completed shifts recorded yet.</p>';
-                totalEarningsEl.innerText = '₹0';
-                totalShiftsEl.innerText = '0';
-                return;
-            }
-
-            let lifetimeEarnings = 0;
-            completedJobs.forEach(job => {
-                const numericPrice = parseInt((job.price || '0').replace(/[^0-9]/g, '')) || 0;
-                lifetimeEarnings += numericPrice;
-
-                const item = document.createElement('div');
-                item.className = 'p-3 bg-indigo-900/40 border border-indigo-800 rounded-lg flex justify-between items-center text-xs';
-                item.innerHTML = `
-                    <div>
-                        <strong class="text-slate-200">${job.title}</strong><br>
-                        <span class="text-[10px] text-indigo-300">📍 ${job.location} | Closed: ${job.closedAt || 'N/A'}</span>
-                    </div>
-                    <div class="text-right">
-                        <span class="font-bold text-emerald-400 text-sm">${job.price}</span>
-                        <span class="block text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded font-medium mt-0.5">Paid</span>
-                    </div>
-                `;
-                earningsListEl.appendChild(item);
-            });
-
-            totalEarningsEl.innerText = `₹${lifetimeEarnings}`;
-            totalShiftsEl.innerText = completedJobs.length;
+            window.location.reload();
         }
     </script>
 </body>
