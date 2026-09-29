@@ -51,6 +51,18 @@
                     <input type="text" id="job-title" placeholder="Service Name (e.g., Dance Fitness)" class="w-full px-4 py-2 border rounded-lg">
                     <input type="text" id="job-price" placeholder="Price in INR (e.g., ₹500)" class="w-full px-4 py-2 border rounded-lg">
                     
+                    <!-- Schedule / Date & Time Inputs -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">📅 Work Needed Date</label>
+                            <input type="date" id="job-date" class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">⏰ Work Needed Time</label>
+                            <input type="time" id="job-time" class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                        </div>
+                    </div>
+
                     <!-- 3 Location Setting Options Section -->
                     <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide">📍 Choose Location Setting Method</label>
@@ -73,7 +85,7 @@
                         <p id="location-status" class="text-xs text-slate-500 italic">Address will be remembered automatically for future postings.</p>
                     </div>
 
-                    <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition shadow-md">Broadcast Job Live with Venue Location</button>
+                    <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition shadow-md">Broadcast Job Live with Schedule & Venue</button>
                 </div>
             </div>
 
@@ -196,6 +208,11 @@
                 document.getElementById('job-location').value = savedAddr;
                 document.getElementById('location-status').innerText = "✅ Loaded your saved default address.";
             }
+
+            // Default date picker to today
+            const todayStr = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('job-date');
+            if(dateInput && !dateInput.value) dateInput.value = todayStr;
         });
 
         function saveAddressPermanently() {
@@ -340,7 +357,6 @@
             if (data) {
                 const currentJobs = data.jobs || [];
                 
-                // Play audio sound alert if a new job has been added
                 if (lastJobCount !== null && currentJobs.length > lastJobCount) {
                     playIncomingSound();
                 }
@@ -355,7 +371,7 @@
             } else {
                 const initialData = {
                     jobs: [
-                        { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: 'Attur Layout, Yelahanka, Bengaluru', status: 'Available' }
+                        { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: 'Attur Layout, Yelahanka, Bengaluru', date: '2026-03-30', time: '10:00', status: 'Available' }
                     ],
                     bookings: [],
                     lastCancellation: null
@@ -381,12 +397,14 @@
                 } else {
                     activeJobs.forEach(job => {
                         const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location)}`;
+                        const scheduleText = (job.date || job.time) ? `📅 ${job.date || 'Today'} @ ${job.time || 'ASAP'}` : '📅 Immediate / ASAP';
                         const item = document.createElement('div');
                         item.className = 'bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center';
                         item.innerHTML = `
                             <div>
                                 <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
                                 <h3 class="font-bold text-slate-800">${job.title}</h3>
+                                <p class="text-xs text-amber-700 font-medium mt-0.5">${scheduleText}</p>
                                 <a href="${mapsUrl}" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold mt-1 hover:underline bg-indigo-50 px-2 py-1 rounded">
                                     🚀 ${job.location || 'Start Navigation'}
                                 </a>
@@ -411,12 +429,13 @@
                 } else {
                     adminJobsList.innerHTML = '';
                     activeJobs.forEach(job => {
+                        const schedStr = (job.date || job.time) ? ` | 📅 ${job.date || ''} ${job.time || ''}` : '';
                         const jItem = document.createElement('div');
                         jItem.className = 'p-3 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center text-sm';
                         jItem.innerHTML = `
                             <div>
                                 <strong>${job.title}</strong> (${job.price})<br>
-                                <span class="text-xs text-slate-500">📍 ${job.location} | Status: <span class="font-semibold text-indigo-600">${job.status}</span></span>
+                                <span class="text-xs text-slate-500">📍 ${job.location}${schedStr} | Status: <span class="font-semibold text-indigo-600">${job.status}</span></span>
                             </div>
                             <button onclick="deleteJob(${job.id})" class="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700 transition shadow-sm">🗑️ Delete Job</button>
                         `;
@@ -435,8 +454,8 @@
                         const bItem = document.createElement('div');
                         bItem.className = 'p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex justify-between items-center text-sm';
                         bItem.innerHTML = `
-                            <div><strong>${b.title}</strong> (${b.price}) booked by <strong>${b.client}</strong><br><span class="text-xs text-slate-500">📍 ${b.location}</span></div>
-                            <span class="text-xs text-emerald-700 font-semibold">${b.time}</span>
+                            <div><strong>${b.title}</strong> (${b.price}) booked by <strong>${b.client}</strong><br><span class="text-xs text-slate-500">📍 ${b.location} | Scheduled: ${b.date || 'N/A'} ${b.time || ''}</span></div>
+                            <span class="text-xs text-emerald-700 font-semibold">${b.acceptedAt}</span>
                         `;
                         adminList.appendChild(bItem);
                     });
@@ -493,7 +512,9 @@
                         price: job.price,
                         client: clientName,
                         location: job.location,
-                        time: new Date().toLocaleTimeString()
+                        date: job.date,
+                        time: job.time,
+                        acceptedAt: new Date().toLocaleTimeString()
                     };
 
                     if (!data.bookings) data.bookings = [];
@@ -501,7 +522,7 @@
 
                     db.ref('vitapa_data').set(data).then(() => {
                         playIncomingSound();
-                        document.getElementById('modal-job-location').innerText = job.location;
+                        document.getElementById('modal-job-location').innerText = `${job.location} (Scheduled: ${job.date || 'Today'} @ ${job.time || 'ASAP'})`;
                         document.getElementById('modal-maps-link').href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location)}`;
                         document.getElementById('location-modal').classList.remove('hidden');
                     });
@@ -538,6 +559,8 @@
             const title = document.getElementById('job-title').value;
             const price = document.getElementById('job-price').value;
             const location = document.getElementById('job-location').value;
+            const date = document.getElementById('job-date').value;
+            const time = document.getElementById('job-time').value;
             
             if(title && price) {
                 const formattedPrice = price.startsWith('₹') ? price : '₹' + price;
@@ -548,6 +571,8 @@
                     title: title.toUpperCase(),
                     price: formattedPrice,
                     location: finalLocation,
+                    date: date || '',
+                    time: time || '',
                     status: 'Available'
                 };
                 
@@ -559,7 +584,7 @@
                     db.ref('vitapa_data').set(data).then(() => {
                         document.getElementById('job-title').value = '';
                         document.getElementById('job-price').value = '';
-                        alert('Job broadcasted live with sound notification!');
+                        alert('Job broadcasted live with schedule and sound alert!');
                     });
                 });
             } else {
