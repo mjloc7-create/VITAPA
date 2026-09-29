@@ -79,14 +79,13 @@
 
     <script>
         const SUPABASE_URL = 'https://grckpwfmuaqscfthtkcv.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_GGAECFa0SrLgOkdi6g05LA_pEv88yAj';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyY2twd2ZmuaqscfthtkcvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2NjgxMjksImV4cCI6MjEwNjI0NDEyOX0.xAdEXrwObR3B7QxTtaYHn5FC3G9Ms_fcBJTMs5i5Gzc';
 
         let activeJobs = [];
         let acceptedBookings = [];
 
         async function fetchAppData() {
             try {
-                // Fetch Jobs via REST
                 const jobRes = await fetch(`${SUPABASE_URL}/rest/v1/jobs?select=*&order=id.desc`, {
                     headers: {
                         'apikey': SUPABASE_KEY,
@@ -95,7 +94,6 @@
                 });
                 if (jobRes.ok) activeJobs = await jobRes.json();
 
-                // Fetch Bookings via REST
                 const bookRes = await fetch(`${SUPABASE_URL}/rest/v1/bookings?select=*&order=id.desc`, {
                     headers: {
                         'apikey': SUPABASE_KEY,
@@ -164,7 +162,6 @@
                 const clientName = prompt("Enter your name to confirm booking:", "Client");
                 if (!clientName) return;
 
-                // Update job status
                 await fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}`, {
                     method: 'PATCH',
                     headers: {
@@ -176,7 +173,6 @@
                     body: JSON.stringify({ status: 'Booked' })
                 });
 
-                // Insert booking
                 const newBooking = {
                     id: Date.now(),
                     title: job.title,
@@ -261,7 +257,6 @@
             }
         }
 
-        // Poll every 3 seconds for real-time cross-device updates without client SDK errors
         setInterval(fetchAppData, 3000);
 
         setTimeout(() => {
