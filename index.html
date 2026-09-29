@@ -1,0 +1,215 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VITAPA - Hyper-Local Marketplace</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-indigo-600 text-white p-4 shadow-md">
+    <div class="max-w-xl mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold tracking-wide">VITAPA <span class="text-xs bg-indigo-500 px-2 py-1 rounded">1.0 km Radius</span></h1>
+      <div class="flex items-center space-x-2">
+        <span id="gps-status" class="text-xs bg-amber-500 text-white px-2 py-1 rounded">Acquiring GPS...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-xl w-full mx-auto p-4 flex-grow space-y-6">
+
+    <!-- Auth Section -->
+    <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+      <div id="auth-container">
+        <!-- Will toggle between login form and user info via JS -->
+      </div>
+    </section>
+
+    <!-- Post a Booking Form (Hidden by default until logged in) -->
+    <section id="post-section" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hidden">
+      <h2 class="text-md font-semibold mb-3 text-indigo-600">Post a Nearby Booking</h2>
+      <form id="gig-form" class="space-y-3">
+        <input type="text" id="title" placeholder="Booking Title (e.g., Classical Dance Class)" required class="w-full p-2 border rounded-lg text-sm">
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="category" placeholder="Category (e.g., Costume / Teaching)" required class="w-full p-2 border rounded-lg text-sm">
+          <input type="number" id="pay_rate" placeholder="Rate (₹)" required class="w-full p-2 border rounded-lg text-sm">
+        </div>
+        <select id="pay_type" class="w-full p-2 border rounded-lg text-sm">
+          <option value="fixed">Fixed Price</option>
+          <option value="hourly">Hourly Rate</option>
+        </select>
+        <input type="text" id="address" placeholder="Location Address description" required class="w-full p-2 border rounded-lg text-sm">
+        <button type="submit" class="w-full bg-indigo-600 text-white p-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Publish Booking</button>
+      </form>
+    </section>
+
+    <!-- Nearby Bookings Feed -->
+    <section>
+      <h2 class="text-md font-semibold mb-3 text-slate-700">Bookings Within 1.0 km</h2>
+      <div id="gigs-list" class="space-y-3">
+        <p class="text-xs text-slate-400 italic">Scanning location for nearby opportunities...</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Script Logic -->
+  <script>
+    const SUPABASE_URL = 'https://grckpwfmuaqscfthtkcv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyY2twd2ZtdWFxc2NmdGh0a2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2NjgxMjksImV4cCI6MjEwNjI0NDEyOX0.xAdEXrwObR3B7QxTtaYHn5FC3G9Ms_fcBJTMs5i5Gzc';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let userLat = 12.9716; 
+    let userLng = 77.5946;
+
+    // Check Auth State on Load
+    async function checkUserSession() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      renderAuthUI(session);
+    }
+
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      renderAuthUI(session);
+    });
+
+    function renderAuthUI(session) {
+      const authContainer = document.getElementById('auth-container');
+      const postSection = document.getElementById('post-section');
+
+      if (session) {
+        // Logged In State
+        postSection.classList.remove('hidden');
+        authContainer.innerHTML = `
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-600">Logged in as: <strong class="text-indigo-600">${session.user.email}</strong></span>
+            <button onclick="handleLogout()" class="bg-rose-100 text-rose-600 px-3 py-1 rounded hover:bg-rose-200 transition font-medium">Sign Out</button>
+          </div>
+        `;
+      } else {
+        // Logged Out State
+        postSection.classList.add('hidden');
+        authContainer.innerHTML = `
+          <h2 class="text-md font-semibold mb-2 text-slate-700">Admin Login</h2>
+          <form id="login-form" class="space-y-2">
+            <input type="email" id="login-email" placeholder="Admin Email" required class="w-full p-2 border rounded-lg text-sm">
+            <input type="password" id="login-password" placeholder="Password" required class="w-full p-2 border rounded-lg text-sm">
+            <button type="submit" class="w-full bg-slate-900 text-white p-2 rounded-lg text-sm font-medium hover:bg-indigo-600 transition">Log In to Post Bookings</button>
+          </form>
+        `;
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('login-email').value;
+          const password = document.getElementById('login-password').value;
+
+          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) {
+            alert('Login failed: ' + error.message);
+          }
+        });
+      }
+    }
+
+    async function handleLogout() {
+      await supabaseClient.auth.signOut();
+    }
+
+    function initLocation() {
+      const statusEl = document.getElementById('gps-status');
+      if ('geolocation' in navigator) {
+        navigator.geolocation.watchPosition(
+          (position) => {
+            userLat = position.coords.latitude;
+            userLng = position.coords.longitude;
+            statusEl.textContent = 'GPS Active (1km)';
+            statusEl.className = 'text-xs bg-emerald-500 text-white px-2 py-1 rounded';
+            fetchNearbyGigs();
+          },
+          (error) => {
+            statusEl.textContent = 'GPS Fallback Used';
+            statusEl.className = 'text-xs bg-rose-500 text-white px-2 py-1 rounded';
+            fetchNearbyGigs();
+          },
+          { enableHighAccuracy: true }
+        );
+      } else {
+        fetchNearbyGigs();
+      }
+    }
+
+    async function fetchNearbyGigs() {
+      const container = document.getElementById('gigs-list');
+      const { data, error } = await supabaseClient.rpc('get_jobs_nearby', {
+        user_lat: userLat,
+        user_lng: userLng,
+        radius_meters: 1000
+      });
+
+      if (error) {
+        container.innerHTML = `<p class="text-xs text-rose-500">Error loading bookings: ${error.message}</p>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic bg-white p-4 rounded-xl border text-center">No open bookings found within 1.0 km.</p>`;
+        return;
+      }
+
+      container.innerHTML = data.map(gig => `
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+          <div>
+            <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-medium">${gig.category}</span>
+            <h3 class="font-semibold text-sm mt-1">${gig.title}</h3>
+            <p class="text-xs text-slate-500">${gig.address} • <span class="text-emerald-600 font-medium">${Math.round(gig.dist_meters)}m away</span></p>
+          </div>
+          <div class="text-right">
+            <span class="text-sm font-bold text-slate-800">₹${gig.pay_rate}</span>
+            <br><button onclick="acceptGig('${gig.id}')" class="mt-1 bg-slate-900 text-white text-xs px-3 py-1 rounded hover:bg-indigo-600 transition">Take Booking</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('gig-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const title = document.getElementById('title').value;
+      const category = document.getElementById('category').value;
+      const pay_rate = parseFloat(document.getElementById('pay_rate').value);
+      const pay_type = document.getElementById('pay_type').value;
+      const address = document.getElementById('address').value;
+      const pointWKT = `SRID=4326;POINT(${userLng} ${userLat})`;
+
+      const { error } = await supabaseClient.from('jobs').insert([{
+        title,
+        category,
+        pay_rate,
+        pay_type,
+        address,
+        location: pointWKT,
+        status: 'open'
+      }]);
+
+      if (error) {
+        alert('Error posting booking: ' + error.message);
+      } else {
+        document.getElementById('gig-form').reset();
+        fetchNearbyGigs();
+      }
+    });
+
+    function acceptGig(id) {
+      alert('Booking accepted! (ID: ' + id + ')');
+    }
+
+    checkUserSession();
+    initLocation();
+  </script>
+</body>
+</html>
