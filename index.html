@@ -73,7 +73,7 @@
         <div id="marketplace-section" class="space-y-4">
             <div class="flex justify-between items-center mb-2">
                 <h2 class="text-xl font-bold text-slate-800">Nearby Services (Live Feed)</h2>
-                <span id="client-gps-status" class="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">Locating via GPS...</span>
+                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium">Tap Location to Open Maps</span>
             </div>
             <div id="listings-feed" class="space-y-4">
                 <!-- Dynamic items will load here -->
@@ -81,20 +81,20 @@
         </div>
 
         <!-- Precise Location Popup Modal -->
-        <div id="location-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div class="bg-white p-6 rounded-2xl max-w-md w-full shadow-xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-emerald-600">Booking Confirmed! 🎯</h3>
-                    <button onclick="closeLocationModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+        <div id="location-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 border border-slate-100">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-lg font-bold text-emerald-600 flex items-center gap-2"><span>🎯</span> Booking Confirmed!</h3>
+                    <button onclick="closeLocationModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl p-1">&times;</button>
                 </div>
-                <p class="text-sm text-slate-600">You have successfully accepted this job. Click below to open precise navigation on Google Maps:</p>
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                    <p class="text-xs font-semibold text-indigo-600 uppercase">Exact Work GPS Pin / Address</p>
+                <p class="text-sm text-slate-600">You have successfully accepted this service job. Tap below to open directions:</p>
+                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 space-y-1">
+                    <p class="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Exact Job GPS Pin / Address</p>
                     <p id="modal-job-location" class="font-bold text-slate-900 text-base break-all">-</p>
                 </div>
-                <div class="flex gap-2">
-                    <a id="modal-maps-link" href="#" target="_blank" class="flex-1 text-center bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition text-sm">Open Google Maps</a>
-                    <button onclick="closeLocationModal()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium hover:bg-slate-300 transition text-sm">Close</button>
+                <div class="space-y-2 pt-2">
+                    <a id="modal-maps-link" href="#" target="_blank" class="block w-full text-center bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition text-base shadow-md">🗺️ Open Google Maps Navigation</a>
+                    <button onclick="closeLocationModal()" class="block w-full text-center bg-slate-100 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-200 transition text-sm">Close / Done</button>
                 </div>
             </div>
         </div>
@@ -131,7 +131,7 @@
             } else {
                 const initialData = {
                     jobs: [
-                        { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: '13.0827, 80.2707 (Aitur Layout Pin)', status: 'Available' }
+                        { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: '13.0827, 80.2707 (GPS Pin)', status: 'Available' }
                     ],
                     bookings: []
                 };
@@ -147,18 +147,21 @@
                     feed.innerHTML = '<p class="text-slate-500 text-sm">No active listings available.</p>';
                 } else {
                     activeJobs.forEach(job => {
+                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
                         const item = document.createElement('div');
                         item.className = 'bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center';
                         item.innerHTML = `
                             <div>
                                 <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
                                 <h3 class="font-bold text-slate-800">${job.title}</h3>
-                                <p class="text-xs text-slate-500 font-medium mt-0.5">📍 ${job.location || 'GPS Pin Set'}</p>
+                                <a href="${mapsUrl}" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold mt-1 hover:underline bg-indigo-50 px-2 py-1 rounded">
+                                    📍 ${job.location || 'Open Map'} (Tap to Open Map)
+                                </a>
                             </div>
                             <div class="text-right">
                                 <span class="block font-bold text-slate-900 mb-2">${job.price}</span>
                                 ${job.status === 'Available' ? 
-                                    `<button onclick="takeBooking(${job.id})" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Take Booking</button>` :
+                                    `<button onclick="takeBooking(${job.id})" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition shadow-sm">Take Booking</button>` :
                                     `<span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-medium">Booked</span>`
                                 }
                             </div>
@@ -187,7 +190,6 @@
             }
         }
 
-        // Function for admin to capture precise GPS coordinates
         function captureAdminGPS() {
             const statusText = document.getElementById('gps-pin-status');
             statusText.innerText = "Acquiring exact satellite GPS pin...";
@@ -240,7 +242,6 @@
                         const sound = document.getElementById('alert-sound');
                         if(sound) sound.play().catch(e => console.log(e));
 
-                        // Open precise location modal with Google Maps navigation link
                         document.getElementById('modal-job-location').innerText = job.location;
                         document.getElementById('modal-maps-link').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
                         document.getElementById('location-modal').classList.remove('hidden');
@@ -275,12 +276,12 @@
 
         function postJob() {
             const title = document.getElementById('job-title').value;
-            const price = document.getElementById('job-price').value;
+            const price = document.getElementById('job-price <- update">job-price').value;
             const location = document.getElementById('job-location').value;
             
             if(title && price) {
                 const formattedPrice = price.startsWith('₹') ? price : '₹' + price;
-                const finalLocation = location ? location : 'Aitur Layout, Bengaluru (GPS Pin)';
+                const finalLocation = location ? location : '13.0827, 80.2707 (GPS Pin)';
                 
                 const newJob = {
                     id: Date.now(),
