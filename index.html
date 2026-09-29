@@ -46,8 +46,8 @@
                 <div class="space-y-4">
                     <input type="text" id="job-title" placeholder="Service Name (e.g., Dance Fitness)" class="w-full px-4 py-2 border rounded-lg">
                     <input type="text" id="job-price" placeholder="Price in INR (e.g., ₹500)" class="w-full px-4 py-2 border rounded-lg">
-                    <input type="text" id="job-location" placeholder="GPS Location / Exact Address (e.g., Aitur Layout, St 4)" class="w-full px-4 py-2 border rounded-lg">
-                    <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 transition">Broadcast Job (1.0 km Radius)</button>
+                    <input type="text" id="job-location" placeholder="Exact Work Address / GPS Area" class="w-full px-4 py-2 border rounded-lg">
+                    <button onclick="postJob()" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 transition">Broadcast Job Live</button>
                 </div>
             </div>
 
@@ -63,8 +63,8 @@
         <!-- Marketplace Feed (For Clients / Tablets) -->
         <div id="marketplace-section" class="space-y-4">
             <div class="flex justify-between items-center mb-2">
-                <h2 class="text-xl font-bold text-slate-800">Nearby Services (Within 1.0 km)</h2>
-                <span id="gps-status" class="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">Locating via GPS...</span>
+                <h2 class="text-xl font-bold text-slate-800">Nearby Services (Live Feed)</h2>
+                <button onclick="resetFreshJob()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded border border-indigo-200 hover:bg-indigo-100 font-medium">+ Post Test Job Here</button>
             </div>
             <div id="listings-feed" class="space-y-4">
                 <!-- Dynamic items will load here -->
@@ -122,8 +122,7 @@
             } else {
                 const initialData = {
                     jobs: [
-                        { id: 1, title: 'DANCE FITNESS', price: '₹500', location: 'Aitur Layout, Near Main Park (560096)', status: 'Available' },
-                        { id: 2, title: 'COSTUME FITTING & RENTAL', price: '₹500', location: 'Aitur Layout - Block B', status: 'Available' }
+                        { id: 1, title: 'EXPRESS PLUMBING REPAIR', price: '₹400', location: 'Aitur Layout, 3rd Cross, Bengaluru', status: 'Available' }
                     ],
                     bookings: []
                 };
@@ -136,7 +135,7 @@
             if (feed) {
                 feed.innerHTML = '';
                 if (activeJobs.length === 0) {
-                    feed.innerHTML = '<p class="text-slate-500 text-sm">No active listings within your radius.</p>';
+                    feed.innerHTML = '<p class="text-slate-500 text-sm">No active listings available.</p>';
                 } else {
                     activeJobs.forEach(job => {
                         const item = document.createElement('div');
@@ -145,7 +144,7 @@
                             <div>
                                 <p class="text-xs text-indigo-600 font-semibold uppercase">SERVICE</p>
                                 <h3 class="font-bold text-slate-800">${job.title}</h3>
-                                <p class="text-xs text-slate-500 font-medium mt-0.5">📍 ${job.location || '560096'}</p>
+                                <p class="text-xs text-slate-500 font-medium mt-0.5">📍 ${job.location || 'Aitur Layout, Bengaluru'}</p>
                             </div>
                             <div class="text-right">
                                 <span class="block font-bold text-slate-900 mb-2">${job.price}</span>
@@ -163,7 +162,7 @@
             const adminList = document.getElementById('admin-bookings-list');
             if (adminList) {
                 if (acceptedBookings.length === 0) {
-                    adminList.innerHTML = '<p class="text-sm text-slate-400 italic">No bookings accepted yet. Waiting for client actions...</p>';
+                    adminList.innerHTML = '<p class="text-sm text-slate-400 italic">No bookings accepted yet.</p>';
                 } else {
                     adminList.innerHTML = '';
                     acceptedBookings.forEach(b => {
@@ -205,7 +204,7 @@
                         const sound = document.getElementById('alert-sound');
                         if(sound) sound.play().catch(e => console.log(e));
 
-                        // Show Precise Location Modal with Google Maps Link
+                        // Force show precise location modal
                         document.getElementById('modal-job-location').innerText = job.location;
                         document.getElementById('modal-maps-link').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
                         document.getElementById('location-modal').classList.remove('hidden');
@@ -216,6 +215,24 @@
 
         function closeLocationModal() {
             document.getElementById('location-modal').classList.add('hidden');
+        }
+
+        function resetFreshJob() {
+            const freshJob = {
+                id: Date.now(),
+                title: 'EXPRESS PLUMBING REPAIR',
+                price: '₹400',
+                location: 'Aitur Layout, 3rd Cross, Bengaluru',
+                status: 'Available'
+            };
+            db.ref('vitapa_data').once('value').then((snapshot) => {
+                const data = snapshot.val() || { jobs: [], bookings: [] };
+                if (!data.jobs) data.jobs = [];
+                data.jobs.unshift(freshJob);
+                db.ref('vitapa_data').set(data).then(() => {
+                    alert('New test job added to feed!');
+                });
+            });
         }
 
         function handleAdminLogin() {
@@ -245,7 +262,7 @@
             
             if(title && price) {
                 const formattedPrice = price.startsWith('₹') ? price : '₹' + price;
-                const finalLocation = location ? location : 'Aitur Layout, 560096';
+                const finalLocation = location ? location : 'Aitur Layout, Bengaluru';
                 
                 const newJob = {
                     id: Date.now(),
@@ -271,14 +288,6 @@
                 alert('Please fill in service name and price.');
             }
         }
-
-        setTimeout(() => {
-            const gps = document.getElementById('gps-status');
-            if(gps) {
-                gps.innerText = 'GPS Locked (1.0 km)';
-                gps.className = 'text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium';
-            }
-        }, 1000);
     </script>
 </body>
 </html>
