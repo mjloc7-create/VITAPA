@@ -21,10 +21,10 @@
                     <h2 class="text-sm font-semibold text-indigo-200">LOGGED IN: <span class="text-white font-bold">sharath</span></h2>
                     <p class="text-xs text-indigo-300 mt-1">Step 1: Verify 200m GPS. Step 2: Scan Attendance QR. Step 3: Scan Closing QR after shift completion.</p>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 items-center">
                     <button onclick="switchView('portal')" id="tab-portal-btn" class="text-xs bg-indigo-600 px-3 py-1.5 rounded font-bold shadow">Portal</button>
                     <button onclick="switchView('earnings')" id="tab-earnings-btn" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded font-bold border border-slate-700">💰 Earnings</button>
-                    <button class="text-xs bg-rose-600/80 hover:bg-rose-600 px-3 py-1.5 rounded font-bold text-white">Log Out</button>
+                    <button id="btn-logout" type="button" class="text-xs bg-rose-600/80 hover:bg-rose-600 px-3 py-1.5 rounded font-bold text-white transition cursor-pointer">Log Out</button>
                 </div>
             </div>
 
@@ -71,6 +71,19 @@
             document.getElementById('tab-portal-btn').className = isPortal ? 'text-xs bg-indigo-600 px-3 py-1.5 rounded font-bold shadow' : 'text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded font-bold border border-slate-700';
             document.getElementById('tab-earnings-btn').className = !isPortal ? 'text-xs bg-indigo-600 px-3 py-1.5 rounded font-bold shadow' : 'text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded font-bold border border-slate-700';
         }
+
+        // Attach event listener safely on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoutBtn = document.getElementById('btn-logout');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem('vitapa_last_status');
+                    alert('Logged out successfully.');
+                    location.reload();
+                });
+            }
+        });
 
         function renderWorkerEarnings(completedJobs = []) {
             const earningsListEl = document.getElementById('earnings-history-list');
