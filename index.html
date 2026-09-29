@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-indigo-950 text-slate-100 font-sans p-4">
-    <div class="max-w-4xl mx-auto space-y-4">
+    <div id="app-container" class="max-w-4xl mx-auto space-y-4">
         <!-- Header -->
         <header class="flex justify-between items-center bg-indigo-900 p-4 rounded-xl border border-indigo-700">
             <h1 class="text-sm font-bold text-white">VITAPA <span class="text-[10px] bg-indigo-600 px-2 py-0.5 rounded">Worker Portal Active</span></h1>
@@ -24,7 +24,7 @@
                 <div class="flex gap-2 items-center">
                     <button onclick="switchView('portal')" id="tab-portal-btn" class="text-xs bg-indigo-600 px-3 py-1.5 rounded font-bold shadow">Portal</button>
                     <button onclick="switchView('earnings')" id="tab-earnings-btn" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded font-bold border border-slate-700">💰 Earnings</button>
-                    <button id="btn-logout" type="button" class="text-xs bg-rose-600/80 hover:bg-rose-600 px-3 py-1.5 rounded font-bold text-white transition cursor-pointer">Log Out</button>
+                    <button onclick="handleLogout()" type="button" class="text-xs bg-rose-600/80 hover:bg-rose-600 px-3 py-1.5 rounded font-bold text-white transition cursor-pointer">Log Out</button>
                 </div>
             </div>
 
@@ -72,18 +72,16 @@
             document.getElementById('tab-earnings-btn').className = !isPortal ? 'text-xs bg-indigo-600 px-3 py-1.5 rounded font-bold shadow' : 'text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded font-bold border border-slate-700';
         }
 
-        // Attach event listener safely on DOM load
-        document.addEventListener('DOMContentLoaded', () => {
-            const logoutBtn = document.getElementById('btn-logout');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    localStorage.removeItem('vitapa_last_status');
-                    alert('Logged out successfully.');
-                    location.reload();
-                });
-            }
-        });
+        function handleLogout() {
+            localStorage.clear();
+            document.getElementById('app-container').innerHTML = `
+                <div class="bg-indigo-900 border border-indigo-700 p-8 rounded-2xl text-center space-y-4 shadow-2xl">
+                    <h2 class="text-lg font-bold text-white">VITAPA Portal - Session Ended</h2>
+                    <p class="text-xs text-indigo-300">You have been securely logged out.</p>
+                    <button onclick="window.location.reload()" class="bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white px-4 py-2 rounded-lg shadow">Return to Login</button>
+                </div>
+            `;
+        }
 
         function renderWorkerEarnings(completedJobs = []) {
             const earningsListEl = document.getElementById('earnings-history-list');
